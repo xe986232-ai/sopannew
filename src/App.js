@@ -121,6 +121,8 @@ import LoginCreator from "pages/LoginCreator.js";
 import SignupCreator from "pages/SignupCreator.js";
 import MembersCreator from "pages/MembersCreator.js";
 import MemberProfileCreator from "pages/MemberProfileCreator.js";
+import KaryaRemix from "pages/KaryaRemix.js";
+
 
 // ── Sopan Leadies ──
 // TEMP: belum dibuat Antigravity, dikomentari dulu supaya build tidak error.
@@ -165,6 +167,7 @@ export default function App() {
           <Route path="/creator/join" element={<SignupCreator />} />
           <Route path="/creator/members" element={<MembersCreator />} />
           <Route path="/creator/members/:id" element={<MemberProfileCreator />} />
+          <Route path="/remix/karya" element={<KaryaRemix />} />
 
           {/* ── Sopan Leadies ── */}
           {/* TEMP: belum ada file-nya, route ini dinonaktifkan dulu supaya tidak error.
