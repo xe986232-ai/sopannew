@@ -106,6 +106,7 @@ import ThankYouPage from "ThankYouPage.js";
 
 // ── Sopan Team: Absensi ──
 import Absensi from "pages/Absensi.js";
+import AbsensiAdmin from "pages/AbsensiAdmin.js";
 
 // ── Sopan Team: Hub ──
 // TEMP: belum dibuat Antigravity, dikomentari dulu supaya build tidak error.
@@ -159,6 +160,7 @@ export default function App() {
 
           {/* ── Sopan Team: Absensi ── */}
           <Route path="/absensi" element={<Absensi />} />
+          <Route path="/absensi/admin" element={<AbsensiAdmin />} />
 
           {/* ── Sopan Remix ── */}
           <Route path="/remix" element={<SopanRemixPage />} />
