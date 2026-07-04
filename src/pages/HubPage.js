@@ -145,7 +145,7 @@ export default () => {
               <>
                 <Index $active={isActive}>{order}</Index>
                 <IconCircle $active={isActive}>
-                  <Icon tw="w-6 h-6" />
+                  <Icon className={tw`w-6 h-6`} />
                 </IconCircle>
                 <TextBlock>
                   <DivisionName $active={isActive}>{division.name}</DivisionName>
