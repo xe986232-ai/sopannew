@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import ReactDOM from "react-dom";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import tw from "twin.macro";
 import styled from "styled-components";
 import { css } from "styled-components/macro"; //eslint-disable-line
@@ -9,10 +9,12 @@ import { Container, ContentWithPaddingXl, Content2Xl, ContentWithVerticalPadding
 import { SectionHeading, Subheading as SubheadingBase } from "components/misc/Headings.js";
 import { SectionDescription } from "components/misc/Typography.js";
 import { PrimaryButton as PrimaryButtonBase } from "components/misc/Buttons.js";
-import HeaderBase from "components/headers/light.js";
+import HeaderBase, { NavLinks, NavLink as HeaderNavLink, PrimaryLink } from "components/headers/light.js";
 import { ReactComponent as CheckCircleIcon } from "images/checkbox-circle.svg";
 import { ReactComponent as AlertIcon } from "feather-icons/dist/icons/alert-circle.svg";
-import { getSession } from "helpers/session.js";
+import { ReactComponent as UserIcon } from "feather-icons/dist/icons/user.svg";
+import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.svg";
+import { getSession, clearSession } from "helpers/session.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HALAMAN ABSENSI — SOPAN TEAM (/absensi)
@@ -90,6 +92,14 @@ const AlertTitle = tw.h3`text-lg font-bold text-gray-900 mb-2`;
 const AlertMessage = tw.p`text-sm text-gray-600 mb-6`;
 const AlertButton = tw.button`bg-primary-500 text-white font-semibold py-2 px-8 rounded-lg hover:bg-primary-700 transition-all duration-300 focus:outline-none`;
 
+// ── Elemen navbar tambahan buat state "sudah login" (nama member + logout) ──
+const MemberNameNavSpan = tw.span`
+  flex items-center text-lg my-2 lg:text-sm lg:mx-6 lg:my-0 font-semibold tracking-wide text-primary-500
+`;
+const LogoutNavButton = styled.button`
+  ${tw`flex items-center text-lg my-2 lg:text-sm lg:mx-6 lg:my-0 font-semibold tracking-wide transition duration-300 pb-1 border-b-2 border-transparent hover:border-red-500 hocus:text-red-500 focus:outline-none bg-transparent`}
+`;
+
 // Menentukan status window absensi berdasarkan waktu "now" vs open/close.
 // TODO-FIREBASE: fungsi ini nanti menerima objek "session" dari Firebase,
 // bukan konstanta hardcode di atas.
@@ -134,7 +144,8 @@ export default () => {
 
   // Member yang lagi login, diambil dari localStorage (diisi pas login lewat
   // LoginRemix.js). null kalau belum login sama sekali.
-  const [currentMember] = useState(() => getSession());
+  const [currentMember, setCurrentMember] = useState(() => getSession());
+  const navigate = useNavigate();
 
   // Cek ulang status buka/tutup absensi secara berkala (gak perlu tiap detik
   // lagi karena tampilannya sekarang teks biasa, bukan angka berjalan).
@@ -150,6 +161,48 @@ export default () => {
     : false;
 
   const closeAlert = () => setAlertInfo((prev) => ({ ...prev, show: false }));
+
+  // Logout: hapus session, langsung refresh state biar tombol Login/Join
+  // Sekarang muncul lagi tanpa perlu reload manual.
+  const handleLogout = () => {
+    clearSession();
+    setCurrentMember(null);
+    navigate("/remix");
+  };
+
+  // Navbar khusus halaman ini: Home & Member selalu tampil. Login & Join
+  // Sekarang di-hide kalau sudah login, digantikan Profile + Nama + Logout.
+  const navLinks = [
+    <NavLinks key={1}>
+      <HeaderNavLink href="/remix">Home</HeaderNavLink>
+      <HeaderNavLink href="/remix/members">Member</HeaderNavLink>
+
+      {!currentMember && (
+        <HeaderNavLink as={Link} to="/remix/login" tw="lg:ml-12!">
+          Login
+        </HeaderNavLink>
+      )}
+      {!currentMember && (
+        <PrimaryLink as={Link} to="/remix/join">
+          Join Sekarang
+        </PrimaryLink>
+      )}
+
+      {currentMember && (
+        <HeaderNavLink as={Link} to={`/remix/members/${currentMember.id}`} tw="lg:ml-12! flex items-center">
+          <UserIcon tw="w-4 h-4 mr-2" />
+          Profile
+        </HeaderNavLink>
+      )}
+      {currentMember && <MemberNameNavSpan>{currentMember.username}</MemberNameNavSpan>}
+      {currentMember && (
+        <LogoutNavButton type="button" onClick={handleLogout}>
+          <LogOutIcon tw="w-4 h-4 mr-2" />
+          Logout
+        </LogoutNavButton>
+      )}
+    </NavLinks>,
+  ];
 
   const handleAbsen = () => {
     // 0) Harus login dulu
@@ -216,7 +269,7 @@ export default () => {
       <PrimaryBackgroundContainer>
         <Content2Xl>
           <HeaderWrapper>
-            <HeaderBase />
+            <HeaderBase links={navLinks} />
           </HeaderWrapper>
           <Container>
             <ContentWithVerticalPadding>
