@@ -64,7 +64,30 @@ const MemberCard = styled(Link)`
   ${tw`flex flex-col items-center no-underline transition duration-300 hover:-translate-y-1`}
   text-decoration: none;
 `;
-const MemberAvatarFrame = tw.div`w-full rounded-xl sm:rounded-2xl overflow-hidden shadow-md h-24 sm:h-32 md:h-40 lg:h-48`;
+const MemberAvatarFrame = styled.div`
+  ${tw`w-full overflow-hidden shadow-md h-24 sm:h-32 md:h-40 lg:h-48`}
+
+  /* ── Squircle border (menggantikan rounded-xl/2xl biasa) ── */
+  --r: 50%; /* antara 0% [kotak] dan 50% [squircle penuh] */
+  --_r: clamp(0%, var(--r) / 2, 25%);
+  --_v: calc(var(--_r) * (1 - sqrt(2) / 4));
+  --_p: calc(var(--_v) - var(--_r) / 2);
+  clip-path: shape(
+    from var(--_v) var(--_p),
+    curve to 50% 0 with var(--_r) 0,
+    curve to calc(100% - var(--_v)) var(--_p) with calc(100% - var(--_r)) 0,
+    curve to calc(100% - var(--_p)) var(--_v) with calc(100% - 2*var(--_p)) calc(2*var(--_p)),
+    curve to 100% 50% with 100% var(--_r),
+    curve to calc(100% - var(--_p)) calc(100% - var(--_v)) with 100% calc(100% - var(--_r)),
+    curve to calc(100% - var(--_v)) calc(100% - var(--_p)) with calc(100% - 2*var(--_p)) calc(100% - 2*var(--_p)),
+    curve to 50% 100% with calc(100% - var(--_r)) 100%,
+    curve to var(--_v) calc(100% - var(--_p)) with var(--_r) 100%,
+    curve to var(--_p) calc(100% - var(--_v)) with calc(2*var(--_p)) calc(100% - 2*var(--_p)),
+    curve to 0 50% with 0 calc(100% - var(--_r)),
+    curve to var(--_p) var(--_v) with 0 var(--_r),
+    curve to var(--_v) var(--_p) with calc(2*var(--_p)) calc(2*var(--_p))
+  );
+`;
 const MemberPosition = tw.span`mt-3 uppercase font-bold tracking-widest text-primary-500 text-xs text-center px-1`;
 const MemberName = tw.span`mt-1 text-xs sm:text-lg font-medium text-gray-900 hover:text-primary-500 transition duration-300 text-center px-1`;
 const MemberSocials = tw.div`mt-2 sm:mt-4 flex`;
