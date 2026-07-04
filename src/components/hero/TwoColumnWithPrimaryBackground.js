@@ -31,6 +31,9 @@ export default ({
   description = "Our cloud provisions the best servers, with fast SSD, powerful Xeon Processors, whenever you need it. Oh, and we have 99.9% SLA",
   primaryButtonText = "Start Your 15 Day Free Trial",
   primaryButtonUrl = "#",
+  links, // opsional: kalau dioper dari halaman pemanggil (mis. HostingCloudLandingPage.js
+         // buat navbar login-aware), dipakai. Kalau tidak, fallback ke defaultNavLinks di bawah
+         // (perilaku lama, tidak berubah buat halaman lain yang belum butuh custom links).
 }) => {
   const logoLink = (
     <LogoLink href="/">
@@ -38,7 +41,7 @@ export default ({
       Sopan Team
     </LogoLink>
   );
-  const navLinks = [
+  const defaultNavLinks = [
   <NavLinks key={1}>
     <NavLink href="/remix">Home</NavLink>
     <NavLink href="/remix/members">Member</NavLink>
@@ -46,6 +49,7 @@ export default ({
     <PrimaryLink href="/remix/join">Join Sekarang</PrimaryLink>
   </NavLinks>
 ];
+  const navLinks = links || defaultNavLinks;
   return (
     <PrimaryBackgroundContainer>
       <Content2Xl>
