@@ -9,8 +9,7 @@ import { ReactComponent as FilmIcon } from "feather-icons/dist/icons/film.svg";
 import { ReactComponent as UsersIcon } from "feather-icons/dist/icons/users.svg";
 import { ReactComponent as ArrowRightIcon } from "feather-icons/dist/icons/arrow-right.svg";
 import { ReactComponent as SvgDotPattern } from "images/dot-pattern.svg";
-import { ReactComponent as SvgDecoratorBlob } from "images/svg-decorator-blob-6.svg";
-import LogoSopanImage from "images/logo-sopan.png";
+import { ReactComponent as SvgDecoratorBlob1 } from "images/svg-decorator-blob-6.svg";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HUB — SOPAN TEAM (/)
@@ -21,80 +20,83 @@ import LogoSopanImage from "images/logo-sopan.png";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Hero = styled.div`
-  ${tw`relative -mt-8 -mx-8 px-8 pt-20 pb-24 lg:pt-24 lg:pb-32 bg-primary-900 overflow-hidden text-center`}
+  ${tw`relative -mt-8 -mx-8 px-6 sm:px-8 pt-16 pb-16 sm:pt-20 sm:pb-20 bg-primary-900 overflow-hidden text-center`}
 `;
 
 const HeroDotPattern = styled(SvgDotPattern)`
   ${tw`absolute pointer-events-none -z-10 opacity-25 text-primary-500 top-0 right-0 w-56 h-56 transform translate-x-1/2 -translate-y-1/2`}
 `;
 
-const HeroBlob = styled(SvgDecoratorBlob)`
-  ${tw`absolute pointer-events-none -z-10 opacity-10 text-primary-100 bottom-0 left-0 w-96 h-96 transform -translate-x-1/2 translate-y-1/2`}
+const HeroBlob = styled(SvgDecoratorBlob1)`
+  ${tw`absolute pointer-events-none -z-10 opacity-15 text-primary-500 bottom-0 left-0 w-80 h-80 transform -translate-x-1/2 translate-y-1/2`}
 `;
 
-const Logo = styled.img`
-  ${tw`h-12 sm:h-16 mx-auto mb-10 select-none`}
+const Badge = styled.div`
+  ${tw`w-16 h-16 mx-auto mb-6 rounded-2xl bg-primary-500 flex items-center justify-center shadow-raised`}
 `;
 
-const Eyebrow = tw.span`inline-block text-xs sm:text-sm uppercase tracking-[0.3em] font-semibold text-primary-300 mb-5`;
+const BadgeLetter = tw.span`text-2xl font-black text-gray-100`;
+
+const Eyebrow = tw.span`inline-block text-xs sm:text-sm uppercase tracking-[0.3em] font-semibold text-primary-300 mb-4`;
 
 const HeroHeading = tw.h1`text-3xl sm:text-4xl lg:text-5xl font-black text-gray-100 leading-tight max-w-2xl mx-auto`;
 
-const HeroDescription = tw.p`mt-6 text-base sm:text-lg text-gray-400 max-w-xl mx-auto leading-relaxed`;
+const HeroDescription = tw.p`mt-5 text-sm sm:text-base lg:text-lg text-gray-400 max-w-md sm:max-w-xl mx-auto leading-relaxed`;
 
-const Content = tw.div`max-w-screen-lg mx-auto py-16 lg:py-20`;
-
-const DivisionList = tw.div`flex flex-col`;
-
-const rowBaseStyles = tw`
-  relative grid grid-cols-12 items-center gap-4 sm:gap-6
-  py-8 sm:py-10 px-4 -mx-4 sm:px-6 sm:-mx-6 rounded-xl
-  border-b border-gray-200 last:border-none
+const Content = styled.div`
+  ${tw`relative -mx-8 px-8 pt-12 pb-16 sm:pt-16 sm:pb-20 bg-gray-100`}
 `;
 
-const DivisionRow = styled(Link)`
-  ${rowBaseStyles}
-  ${tw`no-underline transition-colors duration-300 hocus:bg-gray-100`}
+const Inner = tw.div`max-w-screen-lg mx-auto`;
+
+const DivisionList = tw.div`flex flex-col gap-4 sm:gap-5`;
+
+const cardBaseStyles = tw`
+  relative flex items-center gap-4 sm:gap-6
+  bg-gray-100 rounded-2xl p-5 sm:p-6
+  border border-gray-200
 `;
 
-const DivisionRowDisabled = styled.div`
-  ${rowBaseStyles}
-  ${tw`opacity-50 cursor-not-allowed`}
+const DivisionCard = styled(Link)`
+  ${cardBaseStyles}
+  ${tw`bg-white no-underline transition-all duration-300 hocus:shadow-raised hocus:-translate-y-1 hocus:border-primary-300`}
 `;
 
-const Index = styled.span`
-  ${tw`col-span-2 sm:col-span-1 text-3xl sm:text-4xl font-black text-gray-200 transition-colors duration-300`}
-  ${props => props.$active && tw`group-hocus:text-primary-500`}
+const DivisionCardDisabled = styled.div`
+  ${cardBaseStyles}
+  ${tw`bg-white`}
 `;
 
 const IconCircle = styled.div`
-  ${tw`hidden sm:flex col-span-2 w-16 h-16 rounded-full items-center justify-center border-2 transition-colors duration-300`}
-  ${props => (props.$active ? tw`border-gray-300 text-gray-500 group-hocus:border-primary-500 group-hocus:text-primary-500` : tw`border-gray-200 text-gray-300`)}
+  ${tw`flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-colors duration-300`}
+  ${props => (props.$active ? tw`bg-primary-100 text-primary-600` : tw`bg-gray-200 text-gray-400`)}
 `;
 
-const TextBlock = tw.div`col-span-8 sm:col-span-6`;
+const TextBlock = tw.div`flex-1 min-w-0`;
+
+const TitleRow = tw.div`flex items-center gap-2 flex-wrap`;
 
 const DivisionName = styled.h3`
-  ${tw`text-lg sm:text-2xl font-bold leading-snug`}
+  ${tw`text-base sm:text-xl font-bold leading-snug`}
   ${props => (props.$active ? tw`text-gray-900` : tw`text-gray-400`)}
 `;
 
-const DivisionDescription = tw.p`mt-1 text-sm text-gray-500 leading-relaxed hidden sm:block`;
+const SoonTag = tw.span`text-[9px] sm:text-[10px] uppercase tracking-widest font-bold text-gray-400 bg-gray-100 rounded-full px-3 py-1 whitespace-nowrap`;
 
-const StatusColumn = tw.div`col-span-2 sm:col-span-3 flex justify-end`;
+const DivisionDescription = styled.p`
+  ${tw`mt-1 text-xs sm:text-sm leading-relaxed`}
+  ${props => (props.$active ? tw`text-gray-500` : tw`text-gray-400`)}
+`;
 
-const ActiveTag = styled.span`
-  ${tw`hidden sm:inline-flex items-center gap-2 text-sm font-semibold text-gray-700 transition-all duration-300 group-hocus:text-primary-500 group-hocus:gap-3`}
+const ArrowCircle = styled.div`
+  ${tw`hidden sm:flex flex-shrink-0 w-10 h-10 rounded-full items-center justify-center border-2 border-gray-200 text-gray-400 transition-all duration-300`}
+  ${props => props.$active && tw`group-hocus:border-primary-500 group-hocus:text-primary-500 group-hocus:translate-x-1`}
   svg {
     ${tw`w-4 h-4`}
   }
 `;
 
-const ActiveArrowMobile = tw.span`sm:hidden inline-flex text-gray-400`;
-
-const SoonTag = tw.span`text-[10px] sm:text-xs uppercase tracking-widest font-bold text-gray-400 border border-gray-200 rounded-full px-3 py-2 whitespace-nowrap`;
-
-const FootNote = tw.p`mt-6 pt-10 border-t border-gray-100 text-center text-sm text-gray-400`;
+const FootNote = tw.p`mt-10 sm:mt-12 pt-8 border-t border-gray-200 text-center text-xs sm:text-sm text-gray-400`;
 
 // Data divisi — cukup ubah `status` & `to` di sini kalau ada divisi baru
 // yang siap diluncurkan, tidak perlu ubah struktur JSX di bawah.
@@ -126,7 +128,9 @@ export default () => {
       <Hero>
         <HeroDotPattern />
         <HeroBlob />
-        <Logo src={LogoSopanImage} alt="Sopan Team" />
+        <Badge>
+          <BadgeLetter>S</BadgeLetter>
+        </Badge>
         <Eyebrow>Sopan Team</Eyebrow>
         <HeroHeading>Satu keluarga, tiga divisi kreatif.</HeroHeading>
         <HeroDescription>
@@ -135,59 +139,54 @@ export default () => {
       </Hero>
 
       <Content>
-        <DivisionList>
-          {divisions.map((division, index) => {
-            const isActive = division.status === "active";
-            const Icon = division.icon;
-            const order = String(index + 1).padStart(2, "0");
+        <Inner>
+          <DivisionList>
+            {divisions.map((division) => {
+              const isActive = division.status === "active";
+              const Icon = division.icon;
 
-            const rowContent = (
-              <>
-                <Index $active={isActive}>{order}</Index>
-                <IconCircle $active={isActive}>
-                  <Icon className={tw`w-6 h-6`} />
-                </IconCircle>
-                <TextBlock>
-                  <DivisionName $active={isActive}>{division.name}</DivisionName>
-                  <DivisionDescription>{division.description}</DivisionDescription>
-                </TextBlock>
-                <StatusColumn>
-                  {isActive ? (
-                    <>
-                      <ActiveTag>
-                        Lihat Divisi
-                        <ArrowRightIcon />
-                      </ActiveTag>
-                      <ActiveArrowMobile>
-                        <ArrowRightIcon tw="w-5 h-5" />
-                      </ActiveArrowMobile>
-                    </>
-                  ) : (
-                    <SoonTag>Segera Hadir</SoonTag>
+              const cardContent = (
+                <>
+                  <IconCircle $active={isActive}>
+                    <Icon className={tw`w-5 h-5 sm:w-6 sm:h-6`} />
+                  </IconCircle>
+                  <TextBlock>
+                    <TitleRow>
+                      <DivisionName $active={isActive}>{division.name}</DivisionName>
+                      {!isActive && <SoonTag>Segera Hadir</SoonTag>}
+                    </TitleRow>
+                    <DivisionDescription $active={isActive}>
+                      {division.description}
+                    </DivisionDescription>
+                  </TextBlock>
+                  {isActive && (
+                    <ArrowCircle $active={isActive}>
+                      <ArrowRightIcon />
+                    </ArrowCircle>
                   )}
-                </StatusColumn>
-              </>
-            );
-
-            if (isActive) {
-              return (
-                <DivisionRow key={division.name} to={division.to} className="group">
-                  {rowContent}
-                </DivisionRow>
+                </>
               );
-            }
 
-            return (
-              <DivisionRowDisabled key={division.name} aria-disabled="true">
-                {rowContent}
-              </DivisionRowDisabled>
-            );
-          })}
-        </DivisionList>
+              if (isActive) {
+                return (
+                  <DivisionCard key={division.name} to={division.to} className="group">
+                    {cardContent}
+                  </DivisionCard>
+                );
+              }
 
-        <FootNote>
-          Divisi baru akan terus ditambahkan seiring berkembangnya Sopan Team.
-        </FootNote>
+              return (
+                <DivisionCardDisabled key={division.name} aria-disabled="true">
+                  {cardContent}
+                </DivisionCardDisabled>
+              );
+            })}
+          </DivisionList>
+
+          <FootNote>
+            Divisi baru akan terus ditambahkan seiring berkembangnya Sopan Team.
+          </FootNote>
+        </Inner>
       </Content>
     </AnimationRevealPage>
   );
