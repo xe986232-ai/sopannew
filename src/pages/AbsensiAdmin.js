@@ -300,6 +300,7 @@ export default () => {
   }
 
   return (
+    <>
     <AnimationRevealPage>
       <Container>
         <StyledHeader links={navLinks} />
@@ -446,8 +447,20 @@ export default () => {
           </DashboardGrid>
         </ContentWithPaddingXl>
       </Container>
+    </AnimationRevealPage>
 
-      {/* ── MODAL: Create Absensi ── */}
+      {/* ── MODAL: Create Absensi ──
+          Sengaja dirender DI LUAR <AnimationRevealPage>, bukan sebagai
+          child-nya. AnimationRevealPage membungkus tiap child langsung
+          dengan motion.section yang diberi CSS "transform" untuk animasi
+          slide-in. Kalau ModalOverlay (position: fixed) ada di dalam
+          ancestor yang punya "transform", browser akan menjadikan ancestor
+          itu sebagai containing block baru untuk elemen fixed (spesifikasi
+          CSS), sehingga modal tidak lagi menempel ke viewport dan malah
+          "terlempar" mengikuti offset animasi slide-in -> modal jadi
+          ke-render tapi keluar dari layar / tidak pernah terlihat, padahal
+          state showCreateModal sudah true. Ini penyebab tombol "Create
+          Absensi" terlihat "tidak ada respon". ── */}
       {showCreateModal && (
         <ModalOverlay>
           <ModalBox>
@@ -489,6 +502,6 @@ export default () => {
           </ModalBox>
         </ModalOverlay>
       )}
-    </AnimationRevealPage>
+    </>
   );
 };
