@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import tw from "twin.macro";
 import styled from "styled-components"; //eslint-disable-line
 import { css } from "styled-components/macro"; //eslint-disable-line
 import AnimationRevealPage from "helpers/AnimationRevealPage.js";
 import { useRemixMembers } from "helpers/useRemixMembers.js";
+import { getSession, clearSession } from "helpers/session.js";
 import { Container, ContentWithPaddingXl } from "components/misc/Layouts.js";
 import { SectionHeading, Subheading as SubheadingBase } from "components/misc/Headings";
 import { SectionDescription } from "components/misc/Typography";
@@ -20,6 +21,7 @@ import { ReactComponent as YoutubeIcon } from "images/youtube-icon.svg";
 import { ReactComponent as UserIcon } from "feather-icons/dist/icons/user.svg";
 import { ReactComponent as UsersIcon } from "feather-icons/dist/icons/users.svg";
 import { ReactComponent as CalendarIcon } from "feather-icons/dist/icons/calendar.svg";
+import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.svg";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MEMBER ROSTER: SOPAN REMIX (/remix/members)
@@ -57,6 +59,22 @@ const StatusMessage = tw.p`text-center text-gray-600 mt-16`;
 
 const StyledHeader = tw(HeaderBase)`max-w-none py-4`;
 const LogoLink = tw(LogoLinkBase)`text-gray-900`;
+
+// ── Navbar login-aware — sama logic-nya kayak HostingCloudLandingPage.js:
+// kalau user sudah login, Login & Join Sekarang di-hide, muncul foto profil
+// (avatar bulat, fallback inisial), nama, dan tombol Logout. Header di
+// halaman ini pakai light.js (background terang), jadi nama member dikasih
+// warna ungu (primary) biar kebaca jelas, bukan putih kayak di Hero.
+const ProfileAvatarLink = tw(Link)`flex items-center lg:ml-12! border-b-0`;
+const AvatarCircle = tw.div`w-10 h-10 rounded-full overflow-hidden bg-primary-500 flex items-center justify-center flex-shrink-0`;
+const AvatarImg = tw.img`w-full h-full object-cover`;
+const AvatarInitial = tw.span`text-gray-100 text-sm font-bold select-none`;
+const MemberNameNavSpan = tw.span`
+  flex items-center text-lg my-2 lg:text-sm lg:mx-6 lg:my-0 font-semibold tracking-wide text-primary-500
+`;
+const LogoutNavButton = styled.button`
+  ${tw`flex items-center text-sm lg:mx-6 my-2 lg:my-0 font-semibold tracking-wide transition duration-300 px-4 py-2 rounded-full bg-red-100 text-red-400 hover:bg-red-200 hover:text-red-500 focus:outline-none`}
+`;
 
 // ── Grid daftar member: 3 kolom rapi di mobile, membesar di layar lebih lebar ──
 const MembersGrid = tw.div`grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-8 md:gap-10 max-w-screen-lg mx-auto`;
@@ -120,18 +138,57 @@ const MemberAvatar = ({ src, name }) => {
 export default () => {
   const { members, loading, error } = useRemixMembers();
 
+  // Member yang lagi login, diambil dari localStorage (diisi pas login lewat
+  // LoginRemix.js). null kalau belum login sama sekali.
+  const [currentMember, setCurrentMember] = useState(() => getSession());
+  const [avatarError, setAvatarError] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    clearSession();
+    setCurrentMember(null);
+    navigate("/remix");
+  };
+
   const logoLink = (
     <LogoLink href="/remix">
       <img src={logoImageSrc} alt="Logo" />
       Sopan Remix
     </LogoLink>
   );
+
+  // Home & Member selalu tampil. Login & Join Sekarang di-hide kalau sudah
+  // login, digantikan Avatar + Nama + Logout.
   const navLinks = [
     <NavLinks key={1}>
       <NavLink href="/remix">Home</NavLink>
       <NavLink href="/remix/members">Member</NavLink>
-      <NavLink href="/remix/login">Login</NavLink>
-      <PrimaryLink href="/remix/join">Join Sekarang</PrimaryLink>
+
+      {!currentMember && <NavLink href="/remix/login">Login</NavLink>}
+      {!currentMember && <PrimaryLink href="/remix/join">Join Sekarang</PrimaryLink>}
+
+      {currentMember && (
+        <ProfileAvatarLink to={`/remix/members/${currentMember.id}`} title={currentMember.username}>
+          <AvatarCircle>
+            {currentMember.profilePic && !avatarError ? (
+              <AvatarImg
+                src={currentMember.profilePic}
+                alt={currentMember.username}
+                onError={() => setAvatarError(true)}
+              />
+            ) : (
+              <AvatarInitial>{currentMember.username.trim().charAt(0).toUpperCase()}</AvatarInitial>
+            )}
+          </AvatarCircle>
+        </ProfileAvatarLink>
+      )}
+      {currentMember && <MemberNameNavSpan>{currentMember.username}</MemberNameNavSpan>}
+      {currentMember && (
+        <LogoutNavButton type="button" onClick={handleLogout}>
+          <LogOutIcon tw="w-4 h-4 mr-2" />
+          Logout
+        </LogoutNavButton>
+      )}
     </NavLinks>
   ];
 
