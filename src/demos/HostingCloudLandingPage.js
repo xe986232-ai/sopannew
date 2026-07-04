@@ -1,7 +1,4 @@
 import React from "react";
-import tw from "twin.macro";
-import styled from "styled-components";
-import { css } from "styled-components/macro"; //eslint-disable-line
 import AnimationRevealPage from "helpers/AnimationRevealPage.js";
 import Hero from "components/hero/TwoColumnWithPrimaryBackground.js";
 import Features from "components/features/ThreeColWithSideImageWithPrimaryBackground.js";
@@ -10,8 +7,6 @@ import Testimonial from "components/testimonials/SimplePrimaryBackground.js";
 import FAQ from "components/faqs/TwoColumnPrimaryBackground.js";
 import GetStarted from "components/cta/GetStartedLight.js";
 import Footer from "components/footers/FooterRemix.js";
-import { Container, ContentWithPaddingXl } from "components/misc/Layouts.js";
-import { SectionHeading, Subheading } from "components/misc/Headings.js";
 import serverillustration2ImageSrc from "images/server-illustration-2.svg"
 import serverSecureIllustrationImageSrc from "images/server-secure-illustration.svg"
 import SupportIconImage from "images/support-icon.svg";
@@ -32,37 +27,6 @@ import SimpleIconImage from "images/simple-icon.svg";
 //   Testimonial → FAQ → Footer. Tombol utamanya mengarah ke halaman daftar
 //   karya member (/remix/karya).
 // ─────────────────────────────────────────────────────────────────────────────
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TIM SOPAN REMIX — 3 blob shapes (di bawah section "Lihat Member")
-// CATATAN: `clip-path: shape(...)` masih CSS eksperimental (baru didukung
-// browser Chromium terbaru). Di browser yang belum support, elemen otomatis
-// tampil sebagai kotak biasa (graceful fallback, bukan error/hilang).
-// ─────────────────────────────────────────────────────────────────────────────
-const TeamHeadingContainer = tw.div`text-center mb-10`;
-const BlobsRow = tw.div`flex flex-col sm:flex-row items-center sm:items-start justify-center gap-16 sm:gap-8 md:gap-16 mt-4`;
-const BlobCard = tw.div`flex flex-col items-center max-w-xs`;
-const BlobBase = styled.div`
-  ${tw`w-40 h-40 sm:w-48 sm:h-48 md:w-56 md:h-56 flex items-center justify-center shadow-xl flex-shrink-0`}
-  aspect-ratio: 1;
-`;
-// 1. Pendiri Team
-const BlobFounder1 = styled(BlobBase)`
-  background: linear-gradient(135deg, #935bff 0%, #5a13e6 100%);
-  clip-path: shape(from 89.69% 38.40%,curve to 89.79% 61.67% with 97.46% 50.00%,smooth to 72.56% 81.67%,smooth to 49.32% 92.09%,smooth to 25.57% 84.63%,smooth to 11.60% 62.54%,smooth to 9.74% 36.12%,smooth to 23.74% 14.09%,smooth to 49.98% 6.02%,smooth to 73.10% 16.44%,smooth to 89.69% 38.40%);
-`;
-// 2. Pendiri Team 2
-const BlobFounder2 = styled(BlobBase)`
-  background: linear-gradient(135deg, #8344ff 0%, #460fb3 100%);
-  clip-path: shape(from 87.55% 38.41%,curve to 88.26% 62.10% with 93.20% 50.00%,smooth to 72.73% 80.80%,smooth to 49.03% 90.38%,smooth to 23.93% 85.50%,smooth to 8.80% 63.82%,smooth to 11.44% 38.09%,smooth to 25.98% 14.60%,smooth to 49.63% 4.14%,smooth to 73.21% 16.05%,smooth to 87.55% 38.41%);
-`;
-// 3. Admin Team
-const BlobAdmin = styled(BlobBase)`
-  background: linear-gradient(135deg, #742cff 0%, #3c0d99 100%);
-  clip-path: shape(from 28.85% 13.04%,curve to 56.06% 7.86% with 42.06% 8.35%,smooth to 79.70% 17.87%,smooth to 90.81% 41.85%,smooth to 85.69% 66.34%,smooth to 68.21% 82.83%,smooth to 43.97% 89.74%,smooth to 22.24% 80.52%,smooth to 12.80% 57.52%,smooth to 13.70% 31.45%,smooth to 28.85% 13.04%);
-`;
-const BlobInitial = tw.span`text-white text-4xl sm:text-5xl font-black select-none`;
-const BlobLabel = tw.p`mt-6 text-lg font-bold text-gray-900 text-center`;
 
 export default () => {
   return (
@@ -146,36 +110,6 @@ export default () => {
         buttonRounded={false}
         textOnLeft={false}
       />
-
-      {/* ── TIM SOPAN REMIX ── 3 blob shapes custom, ditaruh di bawah section "Lihat Member" ── */}
-      <Container>
-        <ContentWithPaddingXl>
-          <TeamHeadingContainer>
-            <Subheading>Tim Sopan Remix</Subheading>
-            <SectionHeading>Orang-Orang di Balik Sopan Remix</SectionHeading>
-          </TeamHeadingContainer>
-          <BlobsRow>
-            <BlobCard>
-              <BlobFounder1>
-                <BlobInitial>P</BlobInitial>
-              </BlobFounder1>
-              <BlobLabel>Pendiri Team</BlobLabel>
-            </BlobCard>
-            <BlobCard>
-              <BlobFounder2>
-                <BlobInitial>P</BlobInitial>
-              </BlobFounder2>
-              <BlobLabel>Pendiri Team 2</BlobLabel>
-            </BlobCard>
-            <BlobCard>
-              <BlobAdmin>
-                <BlobInitial>A</BlobInitial>
-              </BlobAdmin>
-              <BlobLabel>Admin Team</BlobLabel>
-            </BlobCard>
-          </BlobsRow>
-        </ContentWithPaddingXl>
-      </Container>
 
       {/* ── CTA → Dengarkan Karya ── mengarahkan ke halaman daftar karya member (/remix/karya) */}
       <GetStarted
