@@ -9,10 +9,11 @@ import { Container, ContentWithPaddingXl, Content2Xl, ContentWithVerticalPadding
 import { SectionHeading, Subheading as SubheadingBase } from "components/misc/Headings.js";
 import { SectionDescription } from "components/misc/Typography.js";
 import { PrimaryButton as PrimaryButtonBase } from "components/misc/Buttons.js";
-import HeaderBase from "components/headers/light.js";
+import HeaderBase, { NavLinks, NavLink } from "components/headers/light.js";
 import { ReactComponent as CheckCircleIcon } from "images/checkbox-circle.svg";
 import { ReactComponent as AlertIcon } from "feather-icons/dist/icons/alert-circle.svg";
-import { getSession } from "helpers/session.js";
+import { ReactComponent as LoadingIcon } from "feather-icons/dist/icons/loader.svg";
+import { getSession, clearSession } from "helpers/session.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HALAMAN ABSENSI — SOPAN TEAM (/absensi)
@@ -46,6 +47,9 @@ const SESSION_CLOSE_AT = "2026-12-31T23:59:59";
 const PrimaryBackgroundContainer = tw.div`-mx-8 px-8 bg-primary-900 text-gray-100`;
 const HeaderWrapper = tw.div`max-w-none -mt-8 py-8 -mx-8 px-8`;
 
+const ProfileNavText = tw(NavLink)`cursor-default lg:hocus:text-gray-100 lg:hocus:border-transparent`;
+const LogoutNavButton = tw(NavLink)`cursor-pointer bg-transparent border-none`;
+
 const Row = tw.div`flex items-center flex-col`;
 const TextColumn = tw.div`text-center max-w-3xl`;
 const Heading = tw(SectionHeading)`leading-tight`;
@@ -61,8 +65,11 @@ const LoginPromptText = tw.p`text-sm text-gray-600 mb-6`;
 const LoginButton = tw(PrimaryButtonBase)`w-full py-5 text-base`;
 
 const AbsensiButton = styled.button`
-  ${tw`w-full tracking-wide font-black text-lg bg-primary-500 text-gray-100 py-5 rounded-lg hover:bg-primary-700 transition-all duration-300 focus:outline-none focus:shadow-outline`}
+  ${tw`w-full tracking-wide font-black text-lg bg-primary-500 text-gray-100 py-5 rounded-lg hover:bg-primary-700 transition-all duration-300 focus:outline-none focus:shadow-outline flex items-center justify-center`}
   ${(props) => props.disabled && tw`opacity-50 cursor-not-allowed hover:bg-primary-500`}
+`;
+const Spinner = styled(LoadingIcon)`
+  ${tw`w-6 h-6 mr-3 animate-spin`}
 `;
 
 const HeadingContainer = tw.div`text-center mb-10`;
@@ -131,10 +138,16 @@ export default () => {
   const [attendees, setAttendees] = useState([]);
   const [alertInfo, setAlertInfo] = useState({ show: false, type: "success", title: "", message: "" });
   const [now, setNow] = useState(Date.now());
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Member yang lagi login, diambil dari localStorage (diisi pas login lewat
   // LoginRemix.js). null kalau belum login sama sekali.
-  const [currentMember] = useState(() => getSession());
+  const [currentMember, setCurrentMember] = useState(() => getSession());
+
+  const handleLogout = () => {
+    clearSession();
+    setCurrentMember(null);
+  };
 
   // Cek ulang status buka/tutup absensi secara berkala (gak perlu tiap detik
   // lagi karena tampilannya sekarang teks biasa, bukan angka berjalan).
@@ -194,21 +207,41 @@ export default () => {
       return;
     }
 
-    // 3) Simpan absensi — nama diambil otomatis dari akun yang sedang login
-    // TODO-FIREBASE: ganti setAttendees(...) ini dengan push() ke
-    // absensi/records/{sessionId} di Firebase Realtime Database, berisi
-    // { id: currentMember.id, name: currentMember.username, timestamp }.
-    setAttendees((prev) => [
-      ...prev,
-      { id: currentMember.id, name: currentMember.username, timestamp: Date.now() },
-    ]);
-    setAlertInfo({
-      show: true,
-      type: "success",
-      title: "Absensi Berhasil!",
-      message: `Terima kasih, ${currentMember.username}. Kehadiran kamu sudah tercatat.`,
-    });
+    // 3) Simpan absensi — nama diambil otomatis dari akun yang sedang login.
+    // Loading sebentar biar ada feedback visual pas tombol ditekan.
+    // TODO-FIREBASE: ganti setTimeout + setAttendees(...) ini dengan await
+    // push() ke absensi/records/{sessionId} di Firebase Realtime Database,
+    // lalu matikan isSubmitting di .then()/.finally().
+    setIsSubmitting(true);
+    setTimeout(() => {
+      setAttendees((prev) => [
+        ...prev,
+        { id: currentMember.id, name: currentMember.username, timestamp: Date.now() },
+      ]);
+      setIsSubmitting(false);
+      setAlertInfo({
+        show: true,
+        type: "success",
+        title: "Absensi Berhasil!",
+        message: `Terima kasih, ${currentMember.username}. Kehadiran kamu sudah tercatat.`,
+      });
+    }, 900);
   };
+
+  const navLinks = [
+    <NavLinks key={1}>
+      {currentMember ? (
+        <>
+          <ProfileNavText as="span">{currentMember.username}</ProfileNavText>
+          <LogoutNavButton as="button" onClick={handleLogout}>
+            Logout
+          </LogoutNavButton>
+        </>
+      ) : (
+        <NavLink href="/remix/login">Login</NavLink>
+      )}
+    </NavLinks>,
+  ];
 
   return (
     <AnimationRevealPage>
@@ -216,7 +249,7 @@ export default () => {
       <PrimaryBackgroundContainer>
         <Content2Xl>
           <HeaderWrapper>
-            <HeaderBase />
+            <HeaderBase links={navLinks} />
           </HeaderWrapper>
           <Container>
             <ContentWithVerticalPadding>
@@ -245,8 +278,20 @@ export default () => {
                   <>
                     <WelcomeText>Login sebagai</WelcomeText>
                     <MemberNameText>{currentMember.username}</MemberNameText>
-                    <AbsensiButton onClick={handleAbsen} disabled={alreadyAbsen || status === "closed"}>
-                      {alreadyAbsen ? "SUDAH ABSEN" : "ABSENSI"}
+                    <AbsensiButton
+                      onClick={handleAbsen}
+                      disabled={alreadyAbsen || status === "closed" || isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Spinner />
+                          Memproses...
+                        </>
+                      ) : alreadyAbsen ? (
+                        "SUDAH ABSEN"
+                      ) : (
+                        "ABSENSI"
+                      )}
                     </AbsensiButton>
                   </>
                 ) : (
