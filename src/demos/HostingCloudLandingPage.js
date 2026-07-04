@@ -32,7 +32,6 @@ export default () => {
         description="Divisi musik dari Sopan Team, tempat berkumpulnya para kreator audio: producer, mixing engineer, dan sound engineer yang berkarya bersama di dunia digital."
         primaryButtonText="Join Sekarang"
         primaryButtonUrl="/remix/join"
-        imageSrc={serverillustration2ImageSrc}
       />
 
       {/* ── FEATURES ── diedit via props di file demo ini */}
