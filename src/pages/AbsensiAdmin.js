@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import tw from "twin.macro";
 import styled from "styled-components";
@@ -16,9 +16,16 @@ import { ReactComponent as CheckIcon } from "feather-icons/dist/icons/check.svg"
 import { ReactComponent as LinkIcon } from "feather-icons/dist/icons/link.svg";
 import { ReactComponent as ChevronDownIcon } from "feather-icons/dist/icons/chevron-down.svg";
 import { ReactComponent as DownloadIcon } from "feather-icons/dist/icons/download.svg";
+import { ReactComponent as EyeIcon } from "feather-icons/dist/icons/eye.svg";
+import { ReactComponent as EyeOffIcon } from "feather-icons/dist/icons/eye-off.svg";
+import { ReactComponent as LockIcon } from "feather-icons/dist/icons/lock.svg";
+import { ReactComponent as UsersIcon } from "feather-icons/dist/icons/users.svg";
+import { ReactComponent as AlertTriangleIcon } from "feather-icons/dist/icons/alert-triangle.svg";
 import { getSession, clearSession } from "helpers/session.js";
 import { useRemixMembers } from "helpers/useRemixMembers.js";
 import { useAbsensiSessions, useAbsensiRecords, createAbsensiSession } from "helpers/useAbsensi.js";
+import { db } from "firebase.js";
+import { ref, get } from "firebase/database";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -162,6 +169,23 @@ const AttendedTime = tw.span`hidden sm:inline text-xs text-gray-400 whitespace-n
 
 const EmptyDetailState = tw.div`bg-gray-100 rounded-lg p-8 text-center text-gray-500 text-sm`;
 
+// ── Section "Daftar Seluruh Member" (path "users") — accordion terpisah dari sesi absensi ──
+const SectionSpacerTop = tw.div`mt-10 mb-4`;
+const SectionSpacerTitle = tw.h4`text-lg font-bold text-gray-900`;
+const SectionSpacerSubtitle = tw.p`text-xs text-gray-500 mt-1`;
+
+const MemberCountPill = tw.span`inline-block flex-shrink-0 text-xs font-bold px-3 rounded-full whitespace-nowrap bg-primary-100 text-primary-500 py-1`;
+
+// ── Peringatan: PDF/tampilan ini berisi password ASLI (plaintext) member ──
+const SecurityWarningBox = tw.div`flex items-start gap-2 bg-red-100 text-red-500 rounded-lg px-4 py-3 mb-4 text-xs leading-relaxed`;
+
+const MemberRowButton = styled.button`
+  ${tw`w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-100 transition duration-150 text-left focus:outline-none`}
+`;
+const PasswordInlineWrap = tw.div`flex items-center gap-1 mt-1`;
+const PasswordText = tw.span`font-mono text-xs text-red-500 bg-red-100 px-2 py-1 rounded truncate`;
+const RevealHint = tw.span`hidden sm:inline text-xs text-gray-400`;
+
 // ── Modal "Create Absensi" ──
 const ModalOverlay = tw.div`fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4`;
 const ModalBox = tw.div`bg-white rounded-lg shadow-lg p-8 max-w-md w-full relative`;
@@ -246,6 +270,106 @@ function buildAttendancePdf(session, memberRows, attendedCount, notAttendedCount
   const safeTitle = session.title.trim().replace(/[^a-z0-9]+/gi, "_").slice(0, 60) || "absensi";
   doc.save(`Absensi-${safeTitle}.pdf`);
 }
+
+// Bikin & download PDF berisi SELURUH data member dari path "users",
+// TERMASUK password asli (plaintext) mereka — sesuai permintaan fitur ini.
+// PERINGATAN: ini data sensitif. Dokumennya dikasih catatan merah di
+// halaman pertama supaya siapapun yang pegang filenya sadar itu bukan file
+// biasa. Foto profil sengaja tidak disertakan di PDF (sama seperti PDF
+// rekap absensi) — fokusnya ke data teks.
+function buildMembersPdf(members) {
+  const doc = new jsPDF();
+
+  doc.setFontSize(15);
+  doc.setTextColor(20, 20, 20);
+  doc.text("Data Member — Sopan Remix", 14, 18);
+
+  doc.setFontSize(9);
+  doc.setTextColor(200, 40, 40);
+  doc.text(
+    "PERINGATAN: dokumen ini berisi password asli (plaintext) akun member. Jangan disebarluaskan.",
+    14,
+    26,
+    { maxWidth: 180 }
+  );
+
+  autoTable(doc, {
+    startY: 33,
+    head: [["No", "Username", "Posisi", "Password", "Followers", "Tgl Gabung"]],
+    body: members.map((m, i) => [
+      i + 1,
+      m.name,
+      m.position || "-",
+      m.passwordPlain || "-",
+      typeof m.followers === "number" ? m.followers : "-",
+      m.joinDate ? formatDate(m.joinDate) : "-",
+    ]),
+    styles: { fontSize: 9, cellPadding: 3 },
+    headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [245, 245, 245] },
+    columnStyles: { 0: { cellWidth: 10 } },
+  });
+
+  doc.save(`Data-Member-SopanRemix-${Date.now()}.pdf`);
+}
+
+// Hook KHUSUS halaman admin ini — ambil semua member dari path "users"
+// TERMASUK field "passwordPlain".
+//
+// SENGAJA TIDAK memakai/mengubah helpers/useRemixMembers.js: hook itu
+// dipakai juga oleh halaman-halaman PUBLIK (mis. daftar member, profil
+// member) yang harus TIDAK PERNAH menampilkan password. Supaya field
+// sensitif ini tidak bisa "kebawa" ke halaman lain secara tidak sengaja
+// di masa depan, hook ini isolated di sini saja dan hanya dipakai di
+// halaman yang sudah di-guard role === "admin" (lihat guard akses di
+// bawah pada komponen utama halaman ini).
+function useAllMembersRaw() {
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    get(ref(db, "users"))
+      .then((snapshot) => {
+        if (!isMounted) return;
+        if (!snapshot.exists()) {
+          setMembers([]);
+          return;
+        }
+        const raw = snapshot.val();
+        const list = Object.keys(raw)
+          .map((id) => {
+            const u = raw[id] || {};
+            const roleRaw = u.role ? String(u.role) : "Member";
+            return {
+              id,
+              name: u.username || "Member",
+              position: roleRaw.charAt(0).toUpperCase() + roleRaw.slice(1),
+              profilePic: u.profilePic || null,
+              passwordPlain: u.passwordPlain ?? null,
+              followers: typeof u.followers === "number" ? u.followers : null,
+              joinDate: u.createdAt || null,
+              status: u.status || null,
+            };
+          })
+          .filter((m) => !m.status || m.status === "success");
+        setMembers(list);
+      })
+      .catch((err) => {
+        if (isMounted) setError(err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  return { members, loading, error };
+}
+
 
 // Avatar member: pakai foto profil dari field "profilePic" kalau ada &
 // berhasil dimuat, fallback ke lingkaran inisial nama kalau tidak ada foto
@@ -436,6 +560,27 @@ export default () => {
   // Sesi yang lagi "dibuka" (accordion expanded). null = semua tertutup.
   const [openSessionId, setOpenSessionId] = useState(null);
 
+  // ── Section "Daftar Seluruh Member" (path "users") ──
+  const [memberListOpen, setMemberListOpen] = useState(false);
+  const [revealedMemberIds, setRevealedMemberIds] = useState(() => new Set());
+  const { members: allMembersRaw, loading: membersRawLoading } = useAllMembersRaw();
+
+  const toggleMemberList = () => setMemberListOpen((prev) => !prev);
+
+  const toggleRevealPassword = (memberId) => {
+    setRevealedMemberIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(memberId)) next.delete(memberId);
+      else next.add(memberId);
+      return next;
+    });
+  };
+
+  const handleDownloadMembersPdf = () => {
+    if (membersRawLoading || allMembersRaw.length === 0) return;
+    buildMembersPdf(allMembersRaw);
+  };
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formTitle, setFormTitle] = useState("");
   const [formOpenAt, setFormOpenAt] = useState(() => toDatetimeLocalValue(new Date()));
@@ -589,6 +734,111 @@ export default () => {
               ))}
             </SessionAccordionList>
           )}
+
+          {/* ── SECTION BARU: Daftar Seluruh Member (path "users") ──
+              Terpisah dari accordion sesi absensi di atas. Satu grup besar:
+              diklik -> tampil semua member (foto profil + username). Klik
+              salah satu baris member -> reveal password akun itu (toggle,
+              bisa buka beberapa sekaligus). Ada tombol download PDF data
+              member (termasuk password) di dalamnya. ── */}
+          <SectionSpacerTop>
+            <SectionSpacerTitle>Daftar Seluruh Member</SectionSpacerTitle>
+            <SectionSpacerSubtitle>Data ditarik langsung dari path Firebase "users".</SectionSpacerSubtitle>
+          </SectionSpacerTop>
+
+          <AccordionCard>
+            <AccordionHeader type="button" onClick={toggleMemberList} aria-expanded={memberListOpen}>
+              <AccordionHeaderLeft>
+                <AccordionTitleBlock>
+                  <AccordionTitle>
+                    <span tw="inline-flex items-center gap-2">
+                      <UsersIcon tw="w-4 h-4" />
+                      Semua Member
+                    </span>
+                  </AccordionTitle>
+                  <AccordionDateRange>Klik untuk lihat seluruh member & password akun mereka</AccordionDateRange>
+                </AccordionTitleBlock>
+              </AccordionHeaderLeft>
+              <AccordionHeaderRight>
+                <MemberCountPill>
+                  {membersRawLoading ? "…" : `${allMembersRaw.length} Member`}
+                </MemberCountPill>
+                <AccordionChevron open={memberListOpen}>
+                  <ChevronDownIcon tw="w-5 h-5" />
+                </AccordionChevron>
+              </AccordionHeaderRight>
+            </AccordionHeader>
+
+            <AccordionBodyOuter open={memberListOpen}>
+              <AccordionBodyInner>
+                <AccordionBodyContent>
+                  <SecurityWarningBox>
+                    <AlertTriangleIcon tw="w-4 h-4 flex-shrink-0 mt-1" />
+                    <span>
+                      Password di bawah ini adalah password ASLI (plaintext) akun member. Klik nama
+                      member untuk menampilkan/menyembunyikan password-nya. Jangan screenshot atau
+                      sebarkan data ini ke luar tim admin.
+                    </span>
+                  </SecurityWarningBox>
+
+                  <ActionsRow>
+                    <DownloadButton
+                      type="button"
+                      onClick={handleDownloadMembersPdf}
+                      disabled={membersRawLoading || allMembersRaw.length === 0}
+                    >
+                      <DownloadIcon tw="w-4 h-4" />
+                      Download PDF Data Member
+                    </DownloadButton>
+                  </ActionsRow>
+
+                  {membersRawLoading && <EmptyDetailState>Memuat data member...</EmptyDetailState>}
+                  {!membersRawLoading && allMembersRaw.length === 0 && (
+                    <EmptyDetailState>Belum ada data member di path "users".</EmptyDetailState>
+                  )}
+
+                  {!membersRawLoading && allMembersRaw.length > 0 && (
+                    <MemberListWrap>
+                      {allMembersRaw.map((m) => {
+                        const revealed = revealedMemberIds.has(m.id);
+                        return (
+                          <MemberRowButton
+                            key={m.id}
+                            type="button"
+                            onClick={() => toggleRevealPassword(m.id)}
+                            aria-expanded={revealed}
+                          >
+                            <MemberLeft>
+                              <MemberAvatar name={m.name} profilePic={m.profilePic} />
+                              <MemberInfo>
+                                <MemberName>{m.name}</MemberName>
+                                {revealed ? (
+                                  <PasswordInlineWrap>
+                                    <LockIcon tw="w-3 h-3 flex-shrink-0 text-red-500" />
+                                    <PasswordText>{m.passwordPlain || "(belum ada password)"}</PasswordText>
+                                  </PasswordInlineWrap>
+                                ) : (
+                                  <MemberPosition>{m.position}</MemberPosition>
+                                )}
+                              </MemberInfo>
+                            </MemberLeft>
+                            <MemberRight>
+                              <RevealHint>{revealed ? "Sembunyikan" : "Lihat password"}</RevealHint>
+                              {revealed ? (
+                                <EyeIcon tw="w-4 h-4 text-gray-400" />
+                              ) : (
+                                <EyeOffIcon tw="w-4 h-4 text-gray-300" />
+                              )}
+                            </MemberRight>
+                          </MemberRowButton>
+                        );
+                      })}
+                    </MemberListWrap>
+                  )}
+                </AccordionBodyContent>
+              </AccordionBodyInner>
+            </AccordionBodyOuter>
+          </AccordionCard>
         </ContentWithPaddingXl>
       </Container>
     </AnimationRevealPage>
