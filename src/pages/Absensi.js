@@ -14,35 +14,27 @@ import { ReactComponent as CheckCircleIcon } from "images/checkbox-circle.svg";
 import { ReactComponent as AlertIcon } from "feather-icons/dist/icons/alert-circle.svg";
 import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.svg";
 import { getSession, clearSession } from "helpers/session.js";
+import { useAbsensiSessions, useAbsensiRecords, pickCurrentSession, markAttendance } from "helpers/useAbsensi.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HALAMAN ABSENSI — SOPAN TEAM (/absensi)
 // Style dasar mengikuti demos/HostingCloudLandingPage.js: hero primary
 // background + section konten di bawahnya dengan Container/ContentWithPaddingXl.
 //
-// CATATAN PENTING (baca sebelum integrasi Firebase):
-// Halaman ini SEMENTARA murni UI + state lokal (belum nyambung Firebase),
-// sesuai arahan: "build halamannya dulu, integrasi Firebase belakangan".
-// Semua bagian yang nanti perlu diganti ke Firebase Realtime Database sudah
-// ditandai dengan komentar "TODO-FIREBASE" di bawah, supaya gampang dicari.
+// SUDAH TERHUBUNG KE FIREBASE REALTIME DATABASE (bukan lagi state lokal):
+//   absensi/sessions/{sessionId}           -> { title, openAt, closeAt, createdAt }
+//   absensi/records/{sessionId}/{memberId} -> { name, timestamp }
 //
-// Rencana struktur data waktu integrasi nanti:
-//   absensi/session -> { sessionId, title, openAt, closeAt }
-//   absensi/records/{sessionId}/{pushId} -> { name, timestamp }
-// Admin membuka/menutup sesi cukup dengan ubah "openAt" / "closeAt" langsung
-// di Firebase Console (sesuai kesepakatan, tanpa halaman admin terpisah dulu).
+// Sesi absensi (tanggal mulai/tutup) dibuat oleh admin lewat halaman
+// pages/AbsensiAdmin.js (/absensi/admin) — halaman ini HANYA membaca sesi
+// yang lagi relevan (pakai pickCurrentSession) dan menulis record kehadiran,
+// tidak ada lagi tanggal hardcode di sini.
 //
-// TIDAK ADA input nama manual lagi di halaman ini. Nama diambil otomatis
-// dari akun member yang lagi login (helpers/session.js, diisi oleh proses
-// login di LoginRemix.js yang sudah nyambung ke Firebase). Kalau belum
-// login, halaman ini nampilin ajakan buat login dulu, bukan tombol absen.
+// TIDAK ADA input nama manual. Nama diambil otomatis dari akun member yang
+// lagi login (helpers/session.js, diisi oleh proses login di LoginRemix.js).
+// Kalau belum login, halaman ini nampilin ajakan buat login dulu, bukan
+// tombol absen.
 // ─────────────────────────────────────────────────────────────────────────────
-
-// TODO-FIREBASE: ganti 2 konstanta ini dengan nilai dari absensi/session
-// (openAt / closeAt) yang dibaca real-time pakai onValue().
-const SESSION_TITLE = "Absensi Sopan Team — Sesi Pembersihan Member";
-const SESSION_OPEN_AT = "2026-07-01T00:00:00";
-const SESSION_CLOSE_AT = "2026-12-31T23:59:59";
 
 const PrimaryBackgroundContainer = tw.div`-mx-8 px-8 bg-primary-900 text-gray-100`;
 const HeaderWrapper = tw.div`max-w-none -mt-8 py-8 -mx-8 px-8`;
@@ -106,27 +98,24 @@ const LogoutNavButton = styled.button`
   ${tw`flex items-center text-sm lg:mx-6 my-2 lg:my-0 font-semibold tracking-wide transition duration-300 px-4 py-2 rounded-full bg-red-100 text-red-400 hover:bg-red-200 hover:text-red-500 focus:outline-none`}
 `;
 
-// Menentukan status window absensi berdasarkan waktu "now" vs open/close.
-// TODO-FIREBASE: fungsi ini nanti menerima objek "session" dari Firebase,
-// bukan konstanta hardcode di atas.
-function getAbsensiStatus(now) {
-  const openAt = new Date(SESSION_OPEN_AT).getTime();
-  const closeAt = new Date(SESSION_CLOSE_AT).getTime();
-  if (now < openAt) return "not-started";
-  if (now > closeAt) return "closed";
+// Menentukan status window absensi berdasarkan waktu "now" vs sesi yang aktif.
+function getAbsensiStatus(session, now) {
+  if (!session) return "no-session";
+  if (now < session.openAt) return "not-started";
+  if (now > session.closeAt) return "closed";
   return "open";
 }
 
-function formatWindow(iso) {
-  return new Date(iso).toLocaleString("id-ID", {
+function formatWindow(timestamp) {
+  return new Date(timestamp).toLocaleString("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
   });
 }
 
 // Format teks lengkap: "Senin, 2 Desember 2026 pukul 19.00"
-function formatFullDate(iso) {
-  const date = new Date(iso);
+function formatFullDate(timestamp) {
+  const date = new Date(timestamp);
   const tanggal = date.toLocaleDateString("id-ID", {
     weekday: "long",
     day: "numeric",
@@ -141,10 +130,8 @@ function formatFullDate(iso) {
 }
 
 export default () => {
-  // TODO-FIREBASE: ganti useState([]) ini dengan hook realtime yang baca
-  // absensi/records/{sessionId} pakai onValue(), supaya daftar hadir update
-  // otomatis di semua device yang buka halaman ini bersamaan.
-  const [attendees, setAttendees] = useState([]);
+  // Semua sesi absensi yang pernah dibuat admin (realtime dari Firebase).
+  const { sessions, loading: sessionsLoading } = useAbsensiSessions();
   const [alertInfo, setAlertInfo] = useState({ show: false, type: "success", title: "", message: "" });
   const [now, setNow] = useState(Date.now());
 
@@ -155,17 +142,31 @@ export default () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  // Cek ulang status buka/tutup absensi secara berkala (gak perlu tiap detik
-  // lagi karena tampilannya sekarang teks biasa, bukan angka berjalan).
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(interval);
   }, []);
 
-  const status = useMemo(() => getAbsensiStatus(now), [now]);
+  // Sesi yang relevan ditampilkan sekarang (yang sedang open, atau upcoming
+  // terdekat, atau yang paling terakhir ditutup kalau semua sudah lewat).
+  const currentSession = useMemo(() => pickCurrentSession(sessions, now), [sessions, now]);
+
+  // Rekap kehadiran REALTIME untuk sesi tersebut, langsung dari Firebase.
+  const { records: attendeeRecords } = useAbsensiRecords(currentSession?.id);
+  const attendees = useMemo(
+    () =>
+      Object.keys(attendeeRecords).map((memberId) => ({
+        id: memberId,
+        name: attendeeRecords[memberId].name,
+        timestamp: attendeeRecords[memberId].timestamp,
+      })),
+    [attendeeRecords]
+  );
+
+  const status = useMemo(() => getAbsensiStatus(currentSession, now), [currentSession, now]);
 
   const alreadyAbsen = currentMember
-    ? attendees.some((a) => a.id === currentMember.id)
+    ? Boolean(attendeeRecords[currentMember.id])
     : false;
 
   const closeAlert = () => setAlertInfo((prev) => ({ ...prev, show: false }));
@@ -221,15 +222,11 @@ export default () => {
     </NavLinks>,
   ];
 
-  const handleAbsen = () => {
+  const handleAbsen = async () => {
     if (isSubmitting) return; // cegah klik dobel selagi loading
-
     setIsSubmitting(true);
 
-    // TODO-FIREBASE: nanti bagian dalam setTimeout ini diganti jadi
-    // await push()/onValue() ke Firebase, jadi spinner otomatis nyala
-    // selama proses network beneran, bukan delay buatan kayak sekarang.
-    setTimeout(() => {
+    try {
       // 0) Harus login dulu
       if (!currentMember) {
         setAlertInfo({
@@ -238,19 +235,28 @@ export default () => {
           title: "Belum Login",
           message: "Login dulu pakai akun member kamu sebelum melakukan absensi.",
         });
-        setIsSubmitting(false);
         return;
       }
 
-      // 1) Cek jendela waktu absensi
+      // 1) Harus ada sesi yang dibuat admin
+      if (!currentSession) {
+        setAlertInfo({
+          show: true,
+          type: "error",
+          title: "Belum Ada Sesi Absensi",
+          message: "Admin belum membuat sesi absensi. Coba lagi nanti ya.",
+        });
+        return;
+      }
+
+      // 2) Cek jendela waktu absensi
       if (status === "not-started") {
         setAlertInfo({
           show: true,
           type: "error",
           title: "Absensi Belum Dibuka",
-          message: `Absensi baru dibuka mulai ${formatWindow(SESSION_OPEN_AT)}. Coba lagi nanti ya.`,
+          message: `Absensi "${currentSession.title}" baru dibuka mulai ${formatWindow(currentSession.openAt)}. Coba lagi nanti ya.`,
         });
-        setIsSubmitting(false);
         return;
       }
       if (status === "closed") {
@@ -260,11 +266,11 @@ export default () => {
           title: "Absensi Telah Ditutup",
           message: "Waktu absensi untuk sesi ini sudah berakhir. Hubungi admin kalau ada kendala.",
         });
-        setIsSubmitting(false);
         return;
       }
 
-      // 2) Cek duplikat (sudah absen sebelumnya di sesi ini)
+      // 3) Cek duplikat (sudah absen sebelumnya di sesi ini) — dicek juga
+      // secara struktural di Firebase karena key record = memberId.
       if (alreadyAbsen) {
         setAlertInfo({
           show: true,
@@ -272,26 +278,29 @@ export default () => {
           title: "Sudah Tercatat",
           message: `Kamu (${currentMember.username}) sudah melakukan absensi sebelumnya di sesi ini.`,
         });
-        setIsSubmitting(false);
         return;
       }
 
-      // 3) Simpan absensi — nama diambil otomatis dari akun yang sedang login
-      // TODO-FIREBASE: ganti setAttendees(...) ini dengan push() ke
-      // absensi/records/{sessionId} di Firebase Realtime Database, berisi
-      // { id: currentMember.id, name: currentMember.username, timestamp }.
-      setAttendees((prev) => [
-        ...prev,
-        { id: currentMember.id, name: currentMember.username, timestamp: Date.now() },
-      ]);
+      // 4) Simpan absensi ke Firebase — path:
+      // absensi/records/{sessionId}/{memberId}
+      await markAttendance(currentSession.id, currentMember.id, currentMember.username);
+
       setAlertInfo({
         show: true,
         type: "success",
         title: "Absensi Berhasil!",
         message: `Terima kasih, ${currentMember.username}. Kehadiran kamu sudah tercatat.`,
       });
+    } catch (err) {
+      setAlertInfo({
+        show: true,
+        type: "error",
+        title: "Gagal Menyimpan",
+        message: "Terjadi kesalahan saat menyimpan absensi. Coba lagi ya.",
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 700);
+    }
   };
 
   return (
@@ -306,20 +315,24 @@ export default () => {
             <ContentWithVerticalPadding>
               <Row>
                 <TextColumn>
-                  <Heading>{SESSION_TITLE}</Heading>
+                  <Heading>{currentSession ? currentSession.title : "Absensi Sopan Team"}</Heading>
                   <Description>
                     Tinggal tekan tombol ABSENSI di bawah, nama kamu langsung
                     tercatat otomatis dari akun member kamu.
                   </Description>
 
+                  {sessionsLoading && <StatusText>Memuat data sesi absensi...</StatusText>}
+                  {!sessionsLoading && status === "no-session" && (
+                    <StatusText>Admin belum membuat sesi absensi.</StatusText>
+                  )}
                   {status === "not-started" && (
-                    <StatusText>Absensi dibuka pada {formatFullDate(SESSION_OPEN_AT)}</StatusText>
+                    <StatusText>Absensi dibuka pada {formatFullDate(currentSession.openAt)}</StatusText>
                   )}
                   {status === "open" && (
-                    <StatusText>Absensi tutup pada {formatFullDate(SESSION_CLOSE_AT)}</StatusText>
+                    <StatusText>Absensi tutup pada {formatFullDate(currentSession.closeAt)}</StatusText>
                   )}
                   {status === "closed" && (
-                    <StatusText>Absensi sudah ditutup sejak {formatFullDate(SESSION_CLOSE_AT)}</StatusText>
+                    <StatusText>Absensi sudah ditutup sejak {formatFullDate(currentSession.closeAt)}</StatusText>
                   )}
                 </TextColumn>
               </Row>
@@ -329,7 +342,10 @@ export default () => {
                   <>
                     <WelcomeText>Login sebagai</WelcomeText>
                     <MemberNameText>{currentMember.username}</MemberNameText>
-                    <AbsensiButton onClick={handleAbsen} disabled={alreadyAbsen || status === "closed" || isSubmitting}>
+                    <AbsensiButton
+                      onClick={handleAbsen}
+                      disabled={alreadyAbsen || status === "closed" || status === "no-session" || isSubmitting}
+                    >
                       {isSubmitting ? (
                         <>
                           <Spinner />
@@ -375,8 +391,8 @@ export default () => {
             )}
             {[...attendees]
               .sort((a, b) => b.timestamp - a.timestamp)
-              .map((a, idx) => (
-                <AttendeeRow key={`${a.id}-${a.timestamp}-${idx}`}>
+              .map((a) => (
+                <AttendeeRow key={a.id}>
                   <div tw="flex items-center">
                     <AttendeeAvatar>{a.name.trim().charAt(0).toUpperCase()}</AttendeeAvatar>
                     <AttendeeName>{a.name}</AttendeeName>
