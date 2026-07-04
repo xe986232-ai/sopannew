@@ -54,15 +54,7 @@ const TextColumn = tw.div`text-center max-w-3xl`;
 const Heading = tw(SectionHeading)`leading-tight`;
 const Description = tw(SectionDescription)`mt-4 max-w-2xl text-gray-100 lg:text-base mx-auto`;
 
-const CountdownWrap = tw.div`mt-8 flex flex-col items-center`;
-const CountdownLabel = tw.span`uppercase tracking-widest text-xs font-bold text-primary-300 mb-2`;
-const CountdownDigits = tw.div`flex items-center`;
-const CountdownBlock = tw.div`flex flex-col items-center mx-2`;
-const CountdownNumber = styled.span`
-  ${tw`text-3xl sm:text-4xl font-black bg-primary-800 rounded-lg px-4 py-2 min-w-[64px] text-center inline-block`}
-`;
-const CountdownUnit = tw.span`mt-1 text-xs text-gray-300 uppercase tracking-wide`;
-const CountdownClosedText = tw.p`mt-2 text-lg font-bold text-red-300`;
+const StatusText = tw.p`mt-6 text-base sm:text-lg font-medium text-gray-200`;
 
 const AbsensiCard = tw.div`mt-10 w-full max-w-md bg-white text-gray-900 rounded-lg shadow-raised p-8 mx-auto text-center`;
 const WelcomeText = tw.p`text-sm text-gray-500 mb-1`;
@@ -116,17 +108,21 @@ function formatWindow(iso) {
   });
 }
 
-// Pecah selisih waktu (ms) jadi { hari, jam, menit, detik }
-function breakdownDuration(ms) {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-  const hari = Math.floor(totalSeconds / 86400);
-  const jam = Math.floor((totalSeconds % 86400) / 3600);
-  const menit = Math.floor((totalSeconds % 3600) / 60);
-  const detik = totalSeconds % 60;
-  return { hari, jam, menit, detik };
+// Format teks lengkap: "Senin, 2 Desember 2026 pukul 19.00"
+function formatFullDate(iso) {
+  const date = new Date(iso);
+  const tanggal = date.toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const jam = date.toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${tanggal} pukul ${jam}`;
 }
-
-const pad2 = (n) => String(n).padStart(2, "0");
 
 export default () => {
   // TODO-FIREBASE: ganti useState([]) ini dengan hook realtime yang baca
@@ -136,20 +132,14 @@ export default () => {
   const [alertInfo, setAlertInfo] = useState({ show: false, type: "success", title: "", message: "" });
   const [now, setNow] = useState(Date.now());
 
-  // Jam berjalan tiap detik buat hitungan mundur absensi.
+  // Cek ulang status buka/tutup absensi secara berkala (gak perlu tiap detik
+  // lagi karena tampilannya sekarang teks biasa, bukan angka berjalan).
   useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 1000);
+    const interval = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(interval);
   }, []);
 
   const status = useMemo(() => getAbsensiStatus(now), [now]);
-
-  const openAt = useMemo(() => new Date(SESSION_OPEN_AT).getTime(), []);
-  const closeAt = useMemo(() => new Date(SESSION_CLOSE_AT).getTime(), []);
-
-  const countdownLabel = status === "not-started" ? "Absensi Dibuka Dalam" : "Absensi Ditutup Dalam";
-  const countdownTarget = status === "not-started" ? openAt : closeAt;
-  const { hari, jam, menit, detik } = breakdownDuration(countdownTarget - now);
 
   const alreadyAbsen = attendees.some((a) => a.id === CURRENT_MEMBER.id);
 
@@ -221,35 +211,15 @@ export default () => {
                     tercatat otomatis dari akun member kamu.
                   </Description>
 
-                  <CountdownWrap>
-                    {status === "closed" ? (
-                      <CountdownClosedText>Sesi absensi ini sudah ditutup</CountdownClosedText>
-                    ) : (
-                      <>
-                        <CountdownLabel>{countdownLabel}</CountdownLabel>
-                        <CountdownDigits>
-                          {hari > 0 && (
-                            <CountdownBlock>
-                              <CountdownNumber>{hari}</CountdownNumber>
-                              <CountdownUnit>Hari</CountdownUnit>
-                            </CountdownBlock>
-                          )}
-                          <CountdownBlock>
-                            <CountdownNumber>{pad2(jam)}</CountdownNumber>
-                            <CountdownUnit>Jam</CountdownUnit>
-                          </CountdownBlock>
-                          <CountdownBlock>
-                            <CountdownNumber>{pad2(menit)}</CountdownNumber>
-                            <CountdownUnit>Menit</CountdownUnit>
-                          </CountdownBlock>
-                          <CountdownBlock>
-                            <CountdownNumber>{pad2(detik)}</CountdownNumber>
-                            <CountdownUnit>Detik</CountdownUnit>
-                          </CountdownBlock>
-                        </CountdownDigits>
-                      </>
-                    )}
-                  </CountdownWrap>
+                  {status === "not-started" && (
+                    <StatusText>Absensi dibuka pada {formatFullDate(SESSION_OPEN_AT)}</StatusText>
+                  )}
+                  {status === "open" && (
+                    <StatusText>Absensi tutup pada {formatFullDate(SESSION_CLOSE_AT)}</StatusText>
+                  )}
+                  {status === "closed" && (
+                    <StatusText>Absensi sudah ditutup sejak {formatFullDate(SESSION_CLOSE_AT)}</StatusText>
+                  )}
                 </TextColumn>
               </Row>
 
