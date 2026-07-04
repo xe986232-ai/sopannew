@@ -4,78 +4,97 @@ import tw from "twin.macro";
 import styled from "styled-components";
 import { css } from "styled-components/macro"; //eslint-disable-line
 import AnimationRevealPage from "helpers/AnimationRevealPage.js";
-import { Container, ContentWithPaddingXl } from "components/misc/Layouts.js";
-import { SectionHeading, Subheading as SubheadingBase } from "components/misc/Headings.js";
-import { SectionDescription } from "components/misc/Typography.js";
-import { PrimaryButton as PrimaryButtonBase } from "components/misc/Buttons.js";
 import { ReactComponent as MusicIcon } from "feather-icons/dist/icons/music.svg";
 import { ReactComponent as FilmIcon } from "feather-icons/dist/icons/film.svg";
 import { ReactComponent as UsersIcon } from "feather-icons/dist/icons/users.svg";
-import { ReactComponent as CheckCircleIcon } from "feather-icons/dist/icons/check-circle.svg";
-import { ReactComponent as ClockIcon } from "feather-icons/dist/icons/clock.svg";
+import { ReactComponent as ArrowRightIcon } from "feather-icons/dist/icons/arrow-right.svg";
+import { ReactComponent as SvgDotPattern } from "images/dot-pattern.svg";
+import { ReactComponent as SvgDecoratorBlob } from "images/svg-decorator-blob-6.svg";
+import LogoSopanImage from "images/logo-sopan.png";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HUB SEMENTARA — SOPAN TEAM (/)
-// TEMP: Ini BUKAN versi final sesuai brief PROMPT-SOPAN-TEAM.md bagian A.
-// Dibuat sebagai placeholder navigasi selagi Antigravity belum menyelesaikan
-// HubPage.js asli (yang seharusnya pakai TabCardGrid.js / PortfolioTwoCardsWithImage.js
-// dan mencakup 3 divisi). Timpa file ini begitu HubPage.js asli sudah jadi.
-//
-// STATUS DIVISI SAAT INI:
-// - Sopan Remix   → AKTIF, bisa diklik, mengarah ke /remix
-// - Sopan Creator → SEGERA HADIR (belum bisa diklik)
-// - Sopan Leadies → SEGERA HADIR (belum bisa diklik)
+// HUB — SOPAN TEAM (/)
+// Halaman index yang menampilkan pilihan divisi Sopan Team.
 // Data disusun jadi satu array `divisions` di bawah supaya gampang diubah
 // statusnya (misalnya kalau Sopan Creator sudah siap, tinggal ganti
 // status: "active" dan isi field `to`-nya).
 // ─────────────────────────────────────────────────────────────────────────────
 
-const HeadingContainer = tw.div`text-center mb-16`;
-const Heading = tw(SectionHeading)``;
-const Subheading = tw(SubheadingBase)`text-center mb-3`;
-const Description = tw(SectionDescription)`mx-auto text-center max-w-2xl`;
-
-const CardGrid = tw.div`mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch`;
-
-const cardBaseStyles = tw`
-  relative flex flex-col h-full
-  bg-gray-100 rounded-lg p-8
-  border-2 border-transparent
+const Hero = styled.div`
+  ${tw`relative -mt-8 -mx-8 px-8 pt-20 pb-24 lg:pt-24 lg:pb-32 bg-primary-900 overflow-hidden text-center`}
 `;
 
-const Card = styled(Link)`
-  ${cardBaseStyles}
-  ${tw`no-underline transition duration-300 hocus:shadow-raised hocus:-translate-y-1 hocus:border-primary-500`}
+const HeroDotPattern = styled(SvgDotPattern)`
+  ${tw`absolute pointer-events-none -z-10 opacity-25 text-primary-500 top-0 right-0 w-56 h-56 transform translate-x-1/2 -translate-y-1/2`}
 `;
 
-const ComingSoonCard = styled.div`
-  ${cardBaseStyles}
-  ${tw`border-dashed border-gray-300 bg-gray-100`}
+const HeroBlob = styled(SvgDecoratorBlob)`
+  ${tw`absolute pointer-events-none -z-10 opacity-10 text-primary-100 bottom-0 left-0 w-96 h-96 transform -translate-x-1/2 translate-y-1/2`}
 `;
 
-const StatusBadge = styled.span`
-  ${tw`absolute top-[1.5rem] right-[1.5rem] inline-flex items-center gap-1 text-[10px] uppercase tracking-widest font-bold px-3 py-1 rounded-full`}
-  ${props => (props.$active ? tw`bg-primary-100 text-primary-600` : tw`bg-gray-200 text-gray-500`)}
+const Logo = styled.img`
+  ${tw`h-12 sm:h-16 mx-auto mb-10 select-none`}
+`;
+
+const Eyebrow = tw.span`inline-block text-xs sm:text-sm uppercase tracking-[0.3em] font-semibold text-primary-300 mb-5`;
+
+const HeroHeading = tw.h1`text-3xl sm:text-4xl lg:text-5xl font-black text-gray-100 leading-tight max-w-2xl mx-auto`;
+
+const HeroDescription = tw.p`mt-6 text-base sm:text-lg text-gray-400 max-w-xl mx-auto leading-relaxed`;
+
+const Content = tw.div`max-w-screen-lg mx-auto py-16 lg:py-20`;
+
+const DivisionList = tw.div`flex flex-col`;
+
+const rowBaseStyles = tw`
+  relative grid grid-cols-12 items-center gap-4 sm:gap-6
+  py-8 sm:py-10 px-4 -mx-4 sm:px-6 sm:-mx-6 rounded-xl
+  border-b border-gray-200 last:border-none
+`;
+
+const DivisionRow = styled(Link)`
+  ${rowBaseStyles}
+  ${tw`no-underline transition-colors duration-300 hocus:bg-gray-100`}
+`;
+
+const DivisionRowDisabled = styled.div`
+  ${rowBaseStyles}
+  ${tw`opacity-50 cursor-not-allowed`}
+`;
+
+const Index = styled.span`
+  ${tw`col-span-2 sm:col-span-1 text-3xl sm:text-4xl font-black text-gray-200 transition-colors duration-300`}
+  ${props => props.$active && tw`group-hocus:text-primary-500`}
 `;
 
 const IconCircle = styled.div`
-  ${tw`w-16 h-16 rounded-full flex items-center justify-center mb-6`}
-  ${props => (props.$active ? tw`bg-primary-500 text-gray-100` : tw`bg-gray-300 text-gray-500`)}
+  ${tw`hidden sm:flex col-span-2 w-16 h-16 rounded-full items-center justify-center border-2 transition-colors duration-300`}
+  ${props => (props.$active ? tw`border-gray-300 text-gray-500 group-hocus:border-primary-500 group-hocus:text-primary-500` : tw`border-gray-200 text-gray-300`)}
 `;
 
-const CardTitle = styled.h4`
-  ${tw`text-2xl font-bold pr-16`}
-  ${props => (props.$active ? tw`text-gray-900` : tw`text-gray-500`)}
-`;
-const CardDescription = tw.p`mt-2 text-sm text-gray-600 leading-relaxed flex-1`;
-const CardButton = tw(PrimaryButtonBase)`mt-8 w-full`;
+const TextBlock = tw.div`col-span-8 sm:col-span-6`;
 
-const ComingSoonFooter = tw.p`
-  mt-8 text-xs uppercase tracking-widest font-bold text-gray-400
-  flex items-center gap-2
+const DivisionName = styled.h3`
+  ${tw`text-lg sm:text-2xl font-bold leading-snug`}
+  ${props => (props.$active ? tw`text-gray-900` : tw`text-gray-400`)}
 `;
 
-const FootNote = tw.p`mt-16 text-center text-sm text-gray-500`;
+const DivisionDescription = tw.p`mt-1 text-sm text-gray-500 leading-relaxed hidden sm:block`;
+
+const StatusColumn = tw.div`col-span-2 sm:col-span-3 flex justify-end`;
+
+const ActiveTag = styled.span`
+  ${tw`hidden sm:inline-flex items-center gap-2 text-sm font-semibold text-gray-700 transition-all duration-300 group-hocus:text-primary-500 group-hocus:gap-3`}
+  svg {
+    ${tw`w-4 h-4`}
+  }
+`;
+
+const ActiveArrowMobile = tw.span`sm:hidden inline-flex text-gray-400`;
+
+const SoonTag = tw.span`text-[10px] sm:text-xs uppercase tracking-widest font-bold text-gray-400 border border-gray-200 rounded-full px-3 py-2 whitespace-nowrap`;
+
+const FootNote = tw.p`mt-6 pt-10 border-t border-gray-100 text-center text-sm text-gray-400`;
 
 // Data divisi — cukup ubah `status` & `to` di sini kalau ada divisi baru
 // yang siap diluncurkan, tidak perlu ubah struktur JSX di bawah.
@@ -104,65 +123,72 @@ const divisions = [
 export default () => {
   return (
     <AnimationRevealPage>
-      <Container>
-        <ContentWithPaddingXl>
-          <HeadingContainer>
-            <Subheading>Sopan Team</Subheading>
-            <Heading>Pilih Divisimu</Heading>
-            <Description>
-              Sopan Team menaungi beberapa divisi kreatif independen.
-              Pilih salah satu untuk melihat karya, member, dan cara bergabung.
-              {/* TEMP: Hub sederhana sementara — versi final menyusul dari Antigravity */}
-            </Description>
-          </HeadingContainer>
+      <Hero>
+        <HeroDotPattern />
+        <HeroBlob />
+        <Logo src={LogoSopanImage} alt="Sopan Team" />
+        <Eyebrow>Sopan Team</Eyebrow>
+        <HeroHeading>Satu keluarga, tiga divisi kreatif.</HeroHeading>
+        <HeroDescription>
+          Pilih divisi untuk melihat karya, member, dan cara bergabung.
+        </HeroDescription>
+      </Hero>
 
-          <CardGrid>
-            {divisions.map((division) => {
-              const isActive = division.status === "active";
-              const Icon = division.icon;
+      <Content>
+        <DivisionList>
+          {divisions.map((division, index) => {
+            const isActive = division.status === "active";
+            const Icon = division.icon;
+            const order = String(index + 1).padStart(2, "0");
 
-              if (isActive) {
-                return (
-                  <Card key={division.name} to={division.to}>
-                    <StatusBadge $active>
-                      <CheckCircleIcon tw="w-3 h-3 fill-current" />
-                      Aktif
-                    </StatusBadge>
-                    <IconCircle $active>
-                      <Icon className={tw`w-6 h-6`} />
-                    </IconCircle>
-                    <CardTitle $active>{division.name}</CardTitle>
-                    <CardDescription>{division.description}</CardDescription>
-                    <CardButton as="span">Lihat Divisi</CardButton>
-                  </Card>
-                );
-              }
+            const rowContent = (
+              <>
+                <Index $active={isActive}>{order}</Index>
+                <IconCircle $active={isActive}>
+                  <Icon tw="w-6 h-6" />
+                </IconCircle>
+                <TextBlock>
+                  <DivisionName $active={isActive}>{division.name}</DivisionName>
+                  <DivisionDescription>{division.description}</DivisionDescription>
+                </TextBlock>
+                <StatusColumn>
+                  {isActive ? (
+                    <>
+                      <ActiveTag>
+                        Lihat Divisi
+                        <ArrowRightIcon />
+                      </ActiveTag>
+                      <ActiveArrowMobile>
+                        <ArrowRightIcon tw="w-5 h-5" />
+                      </ActiveArrowMobile>
+                    </>
+                  ) : (
+                    <SoonTag>Segera Hadir</SoonTag>
+                  )}
+                </StatusColumn>
+              </>
+            );
 
+            if (isActive) {
               return (
-                <ComingSoonCard key={division.name} aria-disabled="true">
-                  <StatusBadge>
-                    <ClockIcon tw="w-3 h-3 fill-current" />
-                    Segera Hadir
-                  </StatusBadge>
-                  <IconCircle>
-                    <Icon className={tw`w-6 h-6`} />
-                  </IconCircle>
-                  <CardTitle>{division.name}</CardTitle>
-                  <CardDescription>{division.description}</CardDescription>
-                  <ComingSoonFooter>
-                    <ClockIcon tw="w-3 h-3 fill-current" />
-                    Sedang dipersiapkan tim
-                  </ComingSoonFooter>
-                </ComingSoonCard>
+                <DivisionRow key={division.name} to={division.to} className="group">
+                  {rowContent}
+                </DivisionRow>
               );
-            })}
-          </CardGrid>
+            }
 
-          <FootNote>
-            Divisi baru akan terus ditambahkan seiring berkembangnya Sopan Team.
-          </FootNote>
-        </ContentWithPaddingXl>
-      </Container>
+            return (
+              <DivisionRowDisabled key={division.name} aria-disabled="true">
+                {rowContent}
+              </DivisionRowDisabled>
+            );
+          })}
+        </DivisionList>
+
+        <FootNote>
+          Divisi baru akan terus ditambahkan seiring berkembangnya Sopan Team.
+        </FootNote>
+      </Content>
     </AnimationRevealPage>
   );
 };
