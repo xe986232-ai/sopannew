@@ -133,7 +133,7 @@ export default ({
 
                   <Input
                     type="text"
-                    placeholder="Username Member (wajib akhiran 'Sopan')"
+                    placeholder="Username Member"
                     required
                     disabled={isSubmitting}
                   />
@@ -162,13 +162,13 @@ export default ({
 
                   <Input
                     type="text"
-                    placeholder="Username TikTok (opsional)"
+                    placeholder="Link TikTok (opsional)"
                     disabled={isSubmitting}
                   />
 
                   <Input
                     type="text"
-                    placeholder="Username YouTube (opsional)"
+                    placeholder="Link YouTube (opsional)"
                     disabled={isSubmitting}
                   />
 
