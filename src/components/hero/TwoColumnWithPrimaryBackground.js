@@ -31,6 +31,7 @@ export default ({
   description = "Our cloud provisions the best servers, with fast SSD, powerful Xeon Processors, whenever you need it. Oh, and we have 99.9% SLA",
   primaryButtonText = "Start Your 15 Day Free Trial",
   primaryButtonUrl = "#",
+  showPrimaryButton = true, // set false buat sembunyiin tombol CTA (mis. kalau user sudah login)
   links, // opsional: kalau dioper dari halaman pemanggil (mis. HostingCloudLandingPage.js
          // buat navbar login-aware), dipakai. Kalau tidak, fallback ke defaultNavLinks di bawah
          // (perilaku lama, tidak berubah buat halaman lain yang belum butuh custom links).
@@ -60,7 +61,9 @@ export default ({
               <TextColumn>
                 <Heading>{heading}</Heading>
                 <Description>{description}</Description>
-                <PrimaryButton as="a" href={primaryButtonUrl}>{primaryButtonText}</PrimaryButton>
+                {showPrimaryButton && (
+                  <PrimaryButton as="a" href={primaryButtonUrl}>{primaryButtonText}</PrimaryButton>
+                )}
               </TextColumn>
             </Row>
           </ContentWithVerticalPadding>
