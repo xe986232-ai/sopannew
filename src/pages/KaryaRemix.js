@@ -99,16 +99,16 @@ const KaryaRow = styled.div`
 
 const RowAvatar = styled.div`
   ${props => `background-image: url("${props.imageSrc}");`}
-  ${tw`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex-shrink-0 bg-cover bg-center shadow-md`}
+  ${tw`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex-shrink-0 bg-cover bg-center shadow-md`}
 `;
 
 const RowMiddle = tw.div`flex-1 min-w-0`;
 const RowTitleRow = tw.div`flex items-center min-w-0`;
 const RowTitle = tw.p`text-sm sm:text-base font-semibold text-gray-100 truncate whitespace-nowrap overflow-hidden`;
-const NowPlayingBadge = tw.span`flex-shrink-0 text-[9px] sm:text-[10px] uppercase tracking-wider font-bold text-primary-300 bg-primary-900 px-2 py-0.5 rounded-full ml-2`;
-const RowCreator = tw.p`text-xs text-primary-300 truncate whitespace-nowrap overflow-hidden mb-1.5`;
+const NowPlayingBadge = tw.span`flex-shrink-0 text-[9px] sm:text-[10px] uppercase tracking-wider font-bold text-primary-300 bg-primary-900 px-2 py-1 rounded-full ml-2`;
+const RowCreator = tw.p`text-xs text-primary-300 truncate whitespace-nowrap overflow-hidden mb-1`;
 
-const RowWaveContainer = tw.div`flex items-end gap-0.5 h-6 w-full max-w-[240px]`;
+const RowWaveContainer = tw.div`flex items-end gap-1 h-6 w-full max-w-[240px]`;
 const RowBar = styled.div`
   flex: 1 1 auto;
   min-width: 2px;
@@ -119,14 +119,14 @@ const RowBar = styled.div`
 `;
 
 const RowPlayButton = styled.button`
-  ${tw`w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary-500 hocus:bg-primary-400 text-gray-900 flex-shrink-0 flex items-center justify-center transition duration-200 focus:outline-none`}
+  ${tw`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary-500 hocus:bg-primary-400 text-gray-900 flex-shrink-0 flex items-center justify-center transition duration-200 focus:outline-none`}
 `;
 
 const RowMenuWrap = tw.div`relative flex-shrink-0`;
 const RowMenuButton = styled.button`
-  ${tw`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-gray-300 hocus:text-gray-100 transition duration-200 focus:outline-none`}
+  ${tw`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-gray-300 hocus:text-gray-100 transition duration-200 focus:outline-none`}
 `;
-const DropdownMenu = tw.div`absolute right-0 top-9 sm:top-10 z-20 bg-gray-100 text-gray-900 rounded-lg shadow-raised overflow-hidden w-44`;
+const DropdownMenu = tw.div`absolute right-0 top-[36px] sm:top-[40px] z-20 bg-gray-100 text-gray-900 rounded-lg shadow-raised overflow-hidden w-[180px]`;
 const DropdownItem = styled.a`
   ${tw`flex items-center gap-2 px-4 py-3 text-sm hocus:bg-gray-200 transition duration-150 cursor-pointer`}
 `;
@@ -543,7 +543,7 @@ export default () => {
                     {isRowPlaying ? (
                       <PauseIcon tw="w-4 h-4 fill-current" />
                     ) : (
-                      <PlayIcon tw="w-4 h-4 fill-current ml-0.5" />
+                      <PlayIcon tw="w-4 h-4 fill-current ml-1" />
                     )}
                   </RowPlayButton>
 
