@@ -49,7 +49,7 @@ const AvatarCircle = tw.div`w-10 h-10 rounded-full overflow-hidden bg-primary-40
 const AvatarImg = tw.img`w-full h-full object-cover`;
 const AvatarInitial = tw.span`text-gray-100 text-sm font-bold select-none`;
 const MemberNameNavSpan = tw.span`
-  flex items-center text-lg my-2 lg:text-sm lg:mx-6 lg:my-0 font-semibold tracking-wide text-gray-100
+  flex items-center text-lg my-2 lg:text-sm lg:mx-6 lg:my-0 font-semibold tracking-wide text-primary-500
 `;
 const LogoutNavButton = styled.button`
   ${tw`flex items-center text-sm lg:mx-6 my-2 lg:my-0 font-semibold tracking-wide transition duration-300 px-4 py-2 rounded-full bg-red-100 text-red-400 hover:bg-red-200 hover:text-red-500 focus:outline-none`}
