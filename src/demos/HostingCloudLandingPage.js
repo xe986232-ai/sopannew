@@ -107,12 +107,16 @@ export default () => {
   return (
     <AnimationRevealPage>
 
-      {/* ── HERO ── diedit via props di file demo ini */}
+      {/* ── HERO ── diedit via props di file demo ini.
+          "Join Sekarang" di-hide kalau sudah login (currentMember ada),
+          dan muncul lagi kalau logout / belum daftar sama sekali —
+          sama logic-nya kayak navLinks di navbar atas. */}
       <Hero
         heading="Sopan Remix — Komunitas Musik Digital"
         description="Divisi musik dari Sopan Team, tempat berkumpulnya para kreator audio: producer, mixing engineer, dan sound engineer yang berkarya bersama di dunia digital."
         primaryButtonText="Join Sekarang"
         primaryButtonUrl="/remix/join"
+        showPrimaryButton={!currentMember}
         links={navLinks}
       />
 
