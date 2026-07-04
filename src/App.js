@@ -159,7 +159,10 @@ export default function App() {
           <Route path="/" element={<HubPage />} />
 
           {/* ── Sopan Team: Absensi ── */}
+          {/* /absensi tanpa token akan otomatis "ditolak" oleh Absensi.js (lihat guard di dalamnya).
+              Link yang valid selalu berbentuk /absensi/{token}, di-generate & di-share dari /absensi/admin. */}
           <Route path="/absensi" element={<Absensi />} />
+          <Route path="/absensi/:token" element={<Absensi />} />
           <Route path="/absensi/admin" element={<AbsensiAdmin />} />
 
           {/* ── Sopan Remix ── */}
