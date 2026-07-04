@@ -129,7 +129,7 @@ export default () => {
                       Aktif
                     </StatusBadge>
                     <IconCircle $active>
-                      <Icon tw="w-6 h-6" />
+                      <Icon className={tw`w-6 h-6`} />
                     </IconCircle>
                     <CardTitle $active>{division.name}</CardTitle>
                     <CardDescription>{division.description}</CardDescription>
@@ -145,7 +145,7 @@ export default () => {
                     Segera Hadir
                   </StatusBadge>
                   <IconCircle>
-                    <Icon tw="w-6 h-6" />
+                    <Icon className={tw`w-6 h-6`} />
                   </IconCircle>
                   <CardTitle>{division.name}</CardTitle>
                   <CardDescription>{division.description}</CardDescription>
