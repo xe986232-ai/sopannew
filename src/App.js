@@ -104,6 +104,9 @@ import ComponentRenderer from "ComponentRenderer.js";
 import MainLandingPage from "MainLandingPage.js";
 import ThankYouPage from "ThankYouPage.js";
 
+// ── Sopan Team: Absensi ──
+import Absensi from "pages/Absensi.js";
+
 // ── Sopan Team: Hub ──
 // TEMP: belum dibuat Antigravity, dikomentari dulu supaya build tidak error.
 import HubPage from "pages/HubPage.js";
@@ -153,6 +156,9 @@ export default function App() {
           {/* TEMP: sementara arahkan "/" ke landing Remix dulu, sambil nunggu HubPage.js dibuat */}
           {/* <Route path="/" element={<SopanRemixPage />} /> */}
           <Route path="/" element={<HubPage />} />
+
+          {/* ── Sopan Team: Absensi ── */}
+          <Route path="/absensi" element={<Absensi />} />
 
           {/* ── Sopan Remix ── */}
           <Route path="/remix" element={<SopanRemixPage />} />
