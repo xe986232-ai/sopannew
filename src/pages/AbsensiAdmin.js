@@ -11,6 +11,9 @@ import HeaderBase, { NavLinks, NavLink as HeaderNavLink } from "components/heade
 import { ReactComponent as PlusIcon } from "feather-icons/dist/icons/plus.svg";
 import { ReactComponent as XIcon } from "feather-icons/dist/icons/x.svg";
 import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.svg";
+import { ReactComponent as CopyIcon } from "feather-icons/dist/icons/copy.svg";
+import { ReactComponent as CheckIcon } from "feather-icons/dist/icons/check.svg";
+import { ReactComponent as LinkIcon } from "feather-icons/dist/icons/link.svg";
 import { getSession, clearSession } from "helpers/session.js";
 import { useRemixMembers } from "helpers/useRemixMembers.js";
 import { useAbsensiSessions, useAbsensiRecords, createAbsensiSession } from "helpers/useAbsensi.js";
@@ -21,11 +24,16 @@ import { useAbsensiSessions, useAbsensiRecords, createAbsensiSession } from "hel
 // Fungsi halaman ini:
 //   1) Admin bisa "Create Absensi" -> pilih tanggal mulai & tanggal tutup ->
 //      tersimpan ke Firebase Realtime Database path baru OTOMATIS:
-//      absensi/sessions/{sessionId} (sessionId = push-ID dari Firebase).
-//   2) Admin bisa pilih salah satu sesi yang sudah dibuat, lalu lihat member
+//      absensi/sessions/{sessionId} (sessionId = push-ID dari Firebase),
+//      lengkap dengan "token" acak yang di-generate otomatis juga.
+//   2) Begitu sesi dibuat, muncul kotak "Link Absensi" berisi URL
+//      "{origin}/absensi/{token}" + tombol Copy Link, buat di-share admin ke
+//      member. Member TIDAK bisa buka halaman absensi tanpa link ini —
+//      lihat guard token di pages/Absensi.js.
+//   3) Admin bisa pilih salah satu sesi yang sudah dibuat, lalu lihat member
 //      mana yang SUDAH absen dan mana yang BELUM, dengan data member diambil
 //      dari path "users" (= member Sopan Remix, lewat helpers/useRemixMembers.js).
-//   3) Semua data realtime (onValue) — begitu member absen di halaman
+//   4) Semua data realtime (onValue) — begitu member absen di halaman
 //      pages/Absensi.js, daftar di sini otomatis update tanpa refresh.
 //
 // AKSES: halaman ini hanya untuk user dengan role "admin" pada path
@@ -96,6 +104,16 @@ const AttendedTime = tw.span`text-xs text-gray-400 ml-3`;
 
 const EmptyDetailState = tw.div`bg-gray-100 rounded-lg p-12 text-center text-gray-500`;
 
+// ── Kotak "Link Absensi" (buat di-share admin ke member) ──
+const ShareLinkBox = tw.div`flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white rounded-lg p-3 mb-6 shadow-sm`;
+const ShareLinkIconWrap = tw.div`hidden sm:flex items-center justify-center w-8 h-8 rounded-lg bg-primary-500 text-gray-100 flex-shrink-0`;
+const ShareLinkText = tw.p`flex-1 text-sm text-gray-700 truncate font-mono px-1`;
+const ShareCopyButton = styled.button`
+  ${tw`flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition duration-200 focus:outline-none flex-shrink-0`}
+  ${(props) => (props.copied ? tw`bg-green-100 text-green-600` : tw`bg-primary-500 text-gray-100 hover:bg-primary-700`)}
+`;
+const NoTokenText = tw.p`text-xs text-gray-400 italic mb-6`;
+
 // ── Modal "Create Absensi" ──
 const ModalOverlay = tw.div`fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4`;
 const ModalBox = tw.div`bg-white rounded-lg shadow-lg p-8 max-w-md w-full relative`;
@@ -153,6 +171,7 @@ export default () => {
   const [formCloseAt, setFormCloseAt] = useState("");
   const [formError, setFormError] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [copiedToken, setCopiedToken] = useState(null);
 
   const now = Date.now();
 
@@ -215,8 +234,9 @@ export default () => {
 
     setIsCreating(true);
     try {
-      // push() ke absensi/sessions -> Firebase generate path/ID baru otomatis
-      const newSessionId = await createAbsensiSession({
+      // push() ke absensi/sessions -> Firebase generate path/ID + token baru
+      // otomatis. "token" inilah yang jadi bagian dari link share.
+      const { id: newSessionId } = await createAbsensiSession({
         title: formTitle.trim(),
         openAt,
         closeAt,
@@ -227,6 +247,20 @@ export default () => {
       setFormError("Gagal menyimpan ke database. Coba lagi.");
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const getAbsensiLink = (token) => `${window.location.origin}/absensi/${token}`;
+
+  const handleCopyLink = async (token) => {
+    const link = getAbsensiLink(token);
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiedToken(token);
+      setTimeout(() => setCopiedToken((prev) => (prev === token ? null : prev)), 2000);
+    } catch (err) {
+      // Fallback kalau clipboard API diblokir browser: seleksi manual via prompt.
+      window.prompt("Copy link absensi ini secara manual:", link);
     }
   };
 
@@ -332,6 +366,35 @@ export default () => {
                       </DetailDateRange>
                     </div>
                   </DetailHeaderRow>
+
+                  {selectedSession.token ? (
+                    <ShareLinkBox>
+                      <ShareLinkIconWrap>
+                        <LinkIcon tw="w-4 h-4" />
+                      </ShareLinkIconWrap>
+                      <ShareLinkText>{getAbsensiLink(selectedSession.token)}</ShareLinkText>
+                      <ShareCopyButton
+                        copied={copiedToken === selectedSession.token}
+                        onClick={() => handleCopyLink(selectedSession.token)}
+                      >
+                        {copiedToken === selectedSession.token ? (
+                          <>
+                            <CheckIcon tw="w-4 h-4" />
+                            Disalin!
+                          </>
+                        ) : (
+                          <>
+                            <CopyIcon tw="w-4 h-4" />
+                            Copy Link
+                          </>
+                        )}
+                      </ShareCopyButton>
+                    </ShareLinkBox>
+                  ) : (
+                    <NoTokenText>
+                      Sesi ini dibuat sebelum fitur link diterapkan, jadi belum ada token — buat sesi baru untuk dapat link share.
+                    </NoTokenText>
+                  )}
 
                   <StatsRow>
                     <StatBox>
