@@ -12,7 +12,6 @@ import { PrimaryButton as PrimaryButtonBase } from "components/misc/Buttons.js";
 import HeaderBase, { NavLinks, NavLink as HeaderNavLink, PrimaryLink } from "components/headers/light.js";
 import { ReactComponent as CheckCircleIcon } from "images/checkbox-circle.svg";
 import { ReactComponent as AlertIcon } from "feather-icons/dist/icons/alert-circle.svg";
-import { ReactComponent as UserIcon } from "feather-icons/dist/icons/user.svg";
 import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.svg";
 import { getSession, clearSession } from "helpers/session.js";
 
@@ -92,12 +91,16 @@ const AlertTitle = tw.h3`text-lg font-bold text-gray-900 mb-2`;
 const AlertMessage = tw.p`text-sm text-gray-600 mb-6`;
 const AlertButton = tw.button`bg-primary-500 text-white font-semibold py-2 px-8 rounded-lg hover:bg-primary-700 transition-all duration-300 focus:outline-none`;
 
-// ── Elemen navbar tambahan buat state "sudah login" (nama member + logout) ──
+// ── Elemen navbar tambahan buat state "sudah login" (avatar + nama + logout) ──
+const ProfileAvatarLink = tw(Link)`flex items-center lg:ml-12! border-b-0`;
+const AvatarCircle = tw.div`w-10 h-10 rounded-full overflow-hidden bg-primary-500 flex items-center justify-center flex-shrink-0`;
+const AvatarImg = tw.img`w-full h-full object-cover`;
+const AvatarInitial = tw.span`text-gray-100 text-sm font-bold select-none`;
 const MemberNameNavSpan = tw.span`
   flex items-center text-lg my-2 lg:text-sm lg:mx-6 lg:my-0 font-semibold tracking-wide text-primary-500
 `;
 const LogoutNavButton = styled.button`
-  ${tw`flex items-center text-lg my-2 lg:text-sm lg:mx-6 lg:my-0 font-semibold tracking-wide transition duration-300 pb-1 border-b-2 border-transparent hover:border-red-500 hocus:text-red-500 focus:outline-none bg-transparent`}
+  ${tw`flex items-center text-sm lg:mx-6 my-2 lg:my-0 font-semibold tracking-wide transition duration-300 px-4 py-2 rounded-full bg-red-100 text-red-400 hover:bg-red-200 hover:text-red-500 focus:outline-none`}
 `;
 
 // Menentukan status window absensi berdasarkan waktu "now" vs open/close.
@@ -145,6 +148,7 @@ export default () => {
   // Member yang lagi login, diambil dari localStorage (diisi pas login lewat
   // LoginRemix.js). null kalau belum login sama sekali.
   const [currentMember, setCurrentMember] = useState(() => getSession());
+  const [avatarError, setAvatarError] = useState(false);
   const navigate = useNavigate();
 
   // Cek ulang status buka/tutup absensi secara berkala (gak perlu tiap detik
@@ -189,10 +193,19 @@ export default () => {
       )}
 
       {currentMember && (
-        <HeaderNavLink as={Link} to={`/remix/members/${currentMember.id}`} tw="lg:ml-12! flex items-center">
-          <UserIcon tw="w-4 h-4 mr-2" />
-          Profile
-        </HeaderNavLink>
+        <ProfileAvatarLink to={`/remix/members/${currentMember.id}`} title={currentMember.username}>
+          <AvatarCircle>
+            {currentMember.profilePic && !avatarError ? (
+              <AvatarImg
+                src={currentMember.profilePic}
+                alt={currentMember.username}
+                onError={() => setAvatarError(true)}
+              />
+            ) : (
+              <AvatarInitial>{currentMember.username.trim().charAt(0).toUpperCase()}</AvatarInitial>
+            )}
+          </AvatarCircle>
+        </ProfileAvatarLink>
       )}
       {currentMember && <MemberNameNavSpan>{currentMember.username}</MemberNameNavSpan>}
       {currentMember && (
