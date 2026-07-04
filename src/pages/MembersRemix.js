@@ -17,6 +17,9 @@ import HeaderBase, {
 import logoImageSrc from "images/logo-sopan.png";
 import { ReactComponent as TiktokIcon } from "images/tiktok-icon.svg";
 import { ReactComponent as YoutubeIcon } from "images/youtube-icon.svg";
+import { ReactComponent as UserIcon } from "feather-icons/dist/icons/user.svg";
+import { ReactComponent as UsersIcon } from "feather-icons/dist/icons/users.svg";
+import { ReactComponent as CalendarIcon } from "feather-icons/dist/icons/calendar.svg";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MEMBER ROSTER: SOPAN REMIX (/remix/members)
@@ -30,14 +33,41 @@ const Heading = tw(SectionHeading)``;
 const Subheading = tw(SubheadingBase)`text-center mb-3`;
 const Description = tw(SectionDescription)`mx-auto text-center`;
 
-const InfoBlock = tw.div`max-w-screen-lg mx-auto px-8 py-8 bg-primary-900 text-gray-100 rounded-lg mb-4`;
-const InfoText = tw.p`text-sm leading-loose text-center`;
-const InfoLabel = tw.span`font-bold text-primary-300`;
+// ── Header info (Pendiri/Pengelola/Berdiri) — versi "pop", bukan teks polos ──
+const InfoBlock = styled.div`
+  ${tw`max-w-screen-lg mx-auto px-6 py-8 sm:px-12 sm:py-10 rounded-3xl mb-4 shadow-xl relative overflow-hidden`}
+  background: linear-gradient(135deg, #8344ff 0%, #3c0d99 100%);
+`;
+const InfoGlow = styled.div`
+  ${tw`absolute w-64 h-64 rounded-full bg-white opacity-10 pointer-events-none`}
+  top: -5rem;
+  right: -5rem;
+`;
+const InfoStatsRow = tw.div`relative flex flex-wrap items-center justify-center gap-3 sm:gap-6`;
+const InfoPill = styled.div`
+  ${tw`flex items-center gap-2 rounded-full px-4 py-3 sm:px-6`}
+  background: rgba(255, 255, 255, 0.12);
+`;
+const InfoPillIconWrap = tw.span`w-8 h-8 rounded-full bg-primary-100 bg-opacity-25 flex items-center justify-center flex-shrink-0`;
+const InfoPillText = tw.span`flex flex-col leading-tight text-left`;
+const InfoPillLabel = tw.span`text-xs font-bold text-primary-100 uppercase tracking-wide`;
+const InfoPillValue = tw.span`text-sm sm:text-base text-gray-100 font-semibold`;
 
 const StatusMessage = tw.p`text-center text-gray-600 mt-16`;
 
 const StyledHeader = tw(HeaderBase)`max-w-none py-4`;
 const LogoLink = tw(LogoLinkBase)`text-gray-900`;
+
+// ── Grid daftar member: 3 kolom rapi di mobile, membesar di layar lebih lebar ──
+const MembersGrid = tw.div`grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-8 md:gap-10 max-w-screen-lg mx-auto`;
+const MemberCard = styled(Link)`
+  ${tw`flex flex-col items-center no-underline transition duration-300 hover:-translate-y-1`}
+  text-decoration: none;
+`;
+const MemberAvatarFrame = tw.div`w-full rounded-xl sm:rounded-2xl overflow-hidden shadow-md h-24 sm:h-32 md:h-40 lg:h-48`;
+const MemberPosition = tw.span`mt-3 uppercase font-bold tracking-widest text-primary-500 text-xs text-center px-1`;
+const MemberName = tw.span`mt-1 text-xs sm:text-lg font-medium text-gray-900 hover:text-primary-500 transition duration-300 text-center px-1`;
+const MemberSocials = tw.div`mt-2 sm:mt-4 flex`;
 
 // Avatar member: pakai foto dari database, fallback ke avatar inisial
 // (lingkaran primary color + huruf depan nama) kalau profilePic kosong/error.
@@ -47,18 +77,20 @@ const MemberAvatar = ({ src, name }) => {
 
   if (!src || failed) {
     return (
-      <div tw="w-64 h-64 rounded-lg bg-primary-500 text-gray-100 flex items-center justify-center text-6xl font-black select-none">
+      <MemberAvatarFrame tw="bg-primary-500 text-gray-100 flex items-center justify-center text-lg sm:text-4xl md:text-5xl font-black select-none">
         {initial}
-      </div>
+      </MemberAvatarFrame>
     );
   }
   return (
-    <img
-      src={src}
-      alt={name}
-      onError={() => setFailed(true)}
-      tw="w-64 h-64 object-cover rounded-lg"
-    />
+    <MemberAvatarFrame>
+      <img
+        src={src}
+        alt={name}
+        onError={() => setFailed(true)}
+        tw="w-full h-full object-cover"
+      />
+    </MemberAvatarFrame>
   );
 };
 
@@ -86,15 +118,40 @@ export default () => {
         <StyledHeader logoLink={logoLink} links={navLinks} />
         <ContentWithPaddingXl>
 
-          {/* Info pendiri & admin divisi */}
+          {/* Info pendiri & admin divisi — versi "pop": pill stats + gradient */}
           <InfoBlock>
-            <InfoText>
-              <InfoLabel>Pendiri: </InfoLabel>Admin Sopan Remix {/* PLACEHOLDER - ganti dengan data asli */}
-              {"  ·  "}
-              <InfoLabel>Pengelola: </InfoLabel>Tim Admin Sopan Remix {/* PLACEHOLDER - ganti dengan data asli */}
-              {"  ·  "}
-              <InfoLabel>Berdiri: </InfoLabel>2022 {/* PLACEHOLDER - ganti dengan data asli */}
-            </InfoText>
+            <InfoGlow />
+            <InfoStatsRow>
+              <InfoPill>
+                <InfoPillIconWrap>
+                  <UserIcon tw="w-4 h-4 text-gray-100" />
+                </InfoPillIconWrap>
+                <InfoPillText>
+                  <InfoPillLabel>Pendiri</InfoPillLabel>
+                  <InfoPillValue>Admin Sopan Remix</InfoPillValue> {/* PLACEHOLDER - ganti dengan data asli */}
+                </InfoPillText>
+              </InfoPill>
+
+              <InfoPill>
+                <InfoPillIconWrap>
+                  <UsersIcon tw="w-4 h-4 text-gray-100" />
+                </InfoPillIconWrap>
+                <InfoPillText>
+                  <InfoPillLabel>Pengelola</InfoPillLabel>
+                  <InfoPillValue>Tim Admin Sopan Remix</InfoPillValue> {/* PLACEHOLDER - ganti dengan data asli */}
+                </InfoPillText>
+              </InfoPill>
+
+              <InfoPill>
+                <InfoPillIconWrap>
+                  <CalendarIcon tw="w-4 h-4 text-gray-100" />
+                </InfoPillIconWrap>
+                <InfoPillText>
+                  <InfoPillLabel>Berdiri</InfoPillLabel>
+                  <InfoPillValue>2022</InfoPillValue> {/* PLACEHOLDER - ganti dengan data asli */}
+                </InfoPillText>
+              </InfoPill>
+            </InfoStatsRow>
           </InfoBlock>
 
           <HeadingContainer>
@@ -115,50 +172,39 @@ export default () => {
           )}
 
           {!loading && !error && members.length > 0 && (
-            <div tw="flex flex-wrap flex-row justify-center sm:max-w-2xl lg:max-w-4xl mx-auto">
+            <MembersGrid>
               {members.map((member) => (
-                <Link
-                  key={member.id}
-                  to={`/remix/members/${member.id}`}
-                  tw="mt-16 w-full sm:w-1/2 flex flex-col items-center no-underline"
-                  style={{ textDecoration: "none" }}
-                >
+                <MemberCard key={member.id} to={`/remix/members/${member.id}`}>
                   <MemberAvatar src={member.profilePic} name={member.name} />
-                  <div tw="flex flex-col items-center mt-6">
-                    <span tw="uppercase font-bold tracking-widest text-xs text-primary-500">
-                      {member.position}
-                    </span>
-                    <span tw="mt-1 text-xl font-medium text-gray-900 hover:text-primary-500 transition duration-300">
-                      {member.name}
-                    </span>
-                    <div tw="mt-6 flex">
-                      {member.tiktok && (
-                        <a
-                          tw="mr-8 last:mr-0 text-gray-400 hocus:text-primary-500 transition duration-300"
-                          href={member.tiktok}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <TiktokIcon tw="fill-current w-6 h-6" />
-                        </a>
-                      )}
-                      {member.youtube && (
-                        <a
-                          tw="mr-8 last:mr-0 text-gray-400 hocus:text-primary-500 transition duration-300"
-                          href={member.youtube}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <YoutubeIcon tw="fill-current w-6 h-6" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </Link>
+                  <MemberPosition>{member.position}</MemberPosition>
+                  <MemberName>{member.name}</MemberName>
+                  <MemberSocials>
+                    {member.tiktok && (
+                      <a
+                        tw="mr-4 sm:mr-8 last:mr-0 text-gray-400 hocus:text-primary-500 transition duration-300"
+                        href={member.tiktok}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <TiktokIcon tw="fill-current w-4 h-4 sm:w-6 sm:h-6" />
+                      </a>
+                    )}
+                    {member.youtube && (
+                      <a
+                        tw="mr-4 sm:mr-8 last:mr-0 text-gray-400 hocus:text-primary-500 transition duration-300"
+                        href={member.youtube}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <YoutubeIcon tw="fill-current w-4 h-4 sm:w-6 sm:h-6" />
+                      </a>
+                    )}
+                  </MemberSocials>
+                </MemberCard>
               ))}
-            </div>
+            </MembersGrid>
           )}
 
         </ContentWithPaddingXl>
