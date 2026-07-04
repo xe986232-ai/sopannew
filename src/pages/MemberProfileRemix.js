@@ -7,7 +7,7 @@ import AnimationRevealPage from "helpers/AnimationRevealPage.js";
 import { Container, ContentWithPaddingXl } from "components/misc/Layouts.js";
 import { SectionHeading, Subheading as SubheadingBase } from "components/misc/Headings.js";
 import { PrimaryButton as PrimaryButtonBase } from "components/misc/Buttons.js";
-import { remixMembers } from "./MembersRemix.js";
+import { useRemixMember } from "helpers/useRemixMembers.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VIEW PROFILE MEMBER: SOPAN REMIX (/remix/members/:id)
@@ -32,15 +32,15 @@ const ProfileCard = styled.div`
 `;
 
 const PhotoContainer = styled.div`
-  ${props => `background-image: url("${props.imageSrc}");`}
-  ${tw`w-48 h-48 md:w-64 md:h-64 bg-cover bg-center rounded flex-shrink-0`}
+  ${tw`w-48 h-48 md:w-64 md:h-64 rounded flex-shrink-0 overflow-hidden bg-primary-500 flex items-center justify-center`}
 `;
+const PhotoImage = tw.img`w-full h-full object-cover`;
+const PhotoInitial = tw.span`text-gray-100 text-6xl font-black select-none`;
 
 const InfoContainer = tw.div`mt-8 md:mt-0 md:ml-10 flex flex-col`;
 
 const MemberName = tw.h2`text-3xl font-black text-gray-900`;
 const MemberPosition = tw.span`uppercase font-bold tracking-widest text-xs text-primary-500 mt-2 block`;
-const MemberBio = tw.p`mt-4 text-sm md:text-base lg:text-lg font-medium leading-relaxed text-secondary-100`;
 
 const DetailRow = styled.div`
   ${tw`flex items-center mt-3`}
@@ -50,9 +50,6 @@ const DetailValue = tw.span`text-gray-600 text-sm`;
 
 const Divider = tw.div`my-6 border-b-2 border-gray-200`;
 
-const WorksSection = tw.div`mt-4`;
-const WorksTitle = tw.h5`font-bold text-gray-700 text-sm uppercase tracking-wider mb-3`;
-const WorkTag = tw.span`inline-block bg-primary-100 text-primary-700 text-xs font-semibold px-3 py-1 rounded-full mr-2 mb-2`;
 
 const ButtonsRow = tw.div`mt-8 flex flex-col sm:flex-row gap-4`;
 const PrimaryButton = tw(PrimaryButtonBase)`text-sm`;
@@ -61,13 +58,26 @@ const SecondaryButton = styled.a`
 `;
 
 const NotFoundContainer = tw.div`text-center py-20`;
+const StatusContainer = tw.div`text-center py-20 text-gray-600`;
 
 export default () => {
   const { id } = useParams();
-  // PLACEHOLDER - data diambil dari array member roster; di produksi nyata ini dari database
-  const member = remixMembers.find(m => m.id === id);
+  const { member, loading, error } = useRemixMember(id);
+  const [photoFailed, setPhotoFailed] = React.useState(false);
 
-  if (!member) {
+  if (loading) {
+    return (
+      <AnimationRevealPage>
+        <Container>
+          <ContentWithPaddingXl>
+            <StatusContainer>Memuat profil member...</StatusContainer>
+          </ContentWithPaddingXl>
+        </Container>
+      </AnimationRevealPage>
+    );
+  }
+
+  if (error || !member) {
     return (
       <AnimationRevealPage>
         <Container>
@@ -84,6 +94,15 @@ export default () => {
     );
   }
 
+  const initial = (member.name || "?").trim().charAt(0).toUpperCase();
+  let joinDateDisplay = null;
+  if (member.joinDate) {
+    const parsed = new Date(member.joinDate);
+    joinDateDisplay = isNaN(parsed.getTime())
+      ? member.joinDate
+      : parsed.toLocaleDateString("id-ID", { year: "numeric", month: "long" });
+  }
+
   return (
     <AnimationRevealPage>
       <Container>
@@ -94,53 +113,74 @@ export default () => {
 
           <ProfileCard>
 
-            {/* Foto — pakai foto placeholder yang sama seperti di roster */}
-            <PhotoContainer imageSrc={member.imageSrc} />
+            {/* Foto — dari database, fallback ke avatar inisial kalau kosong/error */}
+            <PhotoContainer>
+              {member.profilePic && !photoFailed ? (
+                <PhotoImage
+                  src={member.profilePic}
+                  alt={member.name}
+                  onError={() => setPhotoFailed(true)}
+                />
+              ) : (
+                <PhotoInitial>{initial}</PhotoInitial>
+              )}
+            </PhotoContainer>
 
             <InfoContainer>
 
               {/* Nama & Role */}
-              <MemberName>{member.name}</MemberName>{/* PLACEHOLDER */}
-              <MemberPosition>{member.position}</MemberPosition>{/* PLACEHOLDER */}
-
-              {/* Bio singkat */}
-              <MemberBio>{member.bio}</MemberBio>{/* PLACEHOLDER */}
+              <MemberName>{member.name}</MemberName>
+              <MemberPosition>{member.position}</MemberPosition>
 
               <Divider />
 
               {/* Detail info */}
-              <DetailRow>
-                <DetailLabel>Bergabung</DetailLabel>
-                <DetailValue>{member.joinDate}</DetailValue>{/* PLACEHOLDER */}
-              </DetailRow>
-              <DetailRow>
-                <DetailLabel>TikTok / IG</DetailLabel>
-                <DetailValue>
-                  <a
-                    href={`https://www.tiktok.com/${member.socialMedia}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    tw="text-primary-500 hover:text-primary-700"
-                  >
-                    {member.socialMedia}
-                  </a>
-                </DetailValue>{/* PLACEHOLDER — field ini representasi data dari form Join */}
-              </DetailRow>
+              {joinDateDisplay && (
+                <DetailRow>
+                  <DetailLabel>Bergabung</DetailLabel>
+                  <DetailValue>{joinDateDisplay}</DetailValue>
+                </DetailRow>
+              )}
+              {typeof member.followers === "number" && (
+                <DetailRow>
+                  <DetailLabel>Followers</DetailLabel>
+                  <DetailValue>{member.followers}</DetailValue>
+                </DetailRow>
+              )}
+              {member.tiktok && (
+                <DetailRow>
+                  <DetailLabel>TikTok</DetailLabel>
+                  <DetailValue>
+                    <a
+                      href={member.tiktok}
+                      target="_blank"
+                      rel="noreferrer"
+                      tw="text-primary-500 hover:text-primary-700"
+                    >
+                      Lihat profil
+                    </a>
+                  </DetailValue>
+                </DetailRow>
+              )}
+              {member.youtube && (
+                <DetailRow>
+                  <DetailLabel>YouTube</DetailLabel>
+                  <DetailValue>
+                    <a
+                      href={member.youtube}
+                      target="_blank"
+                      rel="noreferrer"
+                      tw="text-primary-500 hover:text-primary-700"
+                    >
+                      Lihat channel
+                    </a>
+                  </DetailValue>
+                </DetailRow>
+              )}
               <DetailRow>
                 <DetailLabel>Divisi</DetailLabel>
                 <DetailValue>Sopan Remix</DetailValue>
               </DetailRow>
-
-              {/* Karya placeholder */}
-              {member.works && member.works.length > 0 && (
-                <WorksSection>
-                  <Divider />
-                  <WorksTitle>Karya Pilihan</WorksTitle>
-                  {member.works.map((work, i) => (
-                    <WorkTag key={i}>{work}</WorkTag>/* PLACEHOLDER */
-                  ))}
-                </WorksSection>
-              )}
 
               {/* Tombol aksi */}
               <ButtonsRow>
