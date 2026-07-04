@@ -8,6 +8,9 @@ import { Container, ContentWithPaddingXl } from "components/misc/Layouts.js";
 import { SectionHeading, Subheading as SubheadingBase } from "components/misc/Headings.js";
 import { SectionDescription } from "components/misc/Typography.js";
 import { PrimaryButton as PrimaryButtonBase } from "components/misc/Buttons.js";
+import remixImageSrc from "images/remix.jpeg";
+import creatorImageSrc from "images/creator.jpeg";
+import leadisImageSrc from "images/leadis.jpeg";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HUB SEMENTARA — SOPAN TEAM (/)
@@ -44,6 +47,15 @@ const ComingSoonCard = tw.div`
   opacity-50
 `;
 
+// Helper: gambar divisi ditaruh sebagai background box, dibuat samar +
+// dicampur gradient tipis (nuansa gray-100 → primary ungu) biar teks judul
+// & deskripsi di depan tetap kebaca jelas, gak nabrak sama foto.
+const divisionBg = (imageSrc) => ({
+  backgroundImage: `linear-gradient(135deg, rgba(243,244,246,0.94) 0%, rgba(243,244,246,0.86) 45%, rgba(100,21,255,0.22) 100%), url(${imageSrc})`,
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+});
+
 export default () => {
   return (
     <AnimationRevealPage>
@@ -60,7 +72,7 @@ export default () => {
           </HeadingContainer>
 
           <CardGrid>
-            <Card to="/remix">
+            <Card to="/remix" style={divisionBg(remixImageSrc)}>
               <CardTitle>Sopan Remix</CardTitle>
               <CardDescription>
                 Produksi musik, mixing, mastering, dan sound engineering.
@@ -68,15 +80,17 @@ export default () => {
               <CardButton as="span">Lihat Divisi</CardButton>
             </Card>
 
-            <Card to="/creator">
+            <ComingSoonCard style={divisionBg(creatorImageSrc)}>
               <CardTitle>Sopan Creator</CardTitle>
               <CardDescription>
                 Editing video gaya jedag-jedug menggunakan Alight Motion.
               </CardDescription>
-              <CardButton as="span">Lihat Divisi</CardButton>
-            </Card>
+              <p tw="mt-6 text-xs uppercase tracking-widest font-bold text-gray-400">
+                Segera hadir!
+              </p>
+            </ComingSoonCard>
 
-            <ComingSoonCard>
+            <ComingSoonCard style={divisionBg(leadisImageSrc)}>
               <CardTitle>Sopan Leadies</CardTitle>
               <CardDescription>
                 Editing video jedag-jedug khusus member perempuan.
