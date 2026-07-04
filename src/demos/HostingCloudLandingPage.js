@@ -5,6 +5,7 @@ import Features from "components/features/ThreeColWithSideImageWithPrimaryBackgr
 import MainFeature from "components/features/TwoColWithButton.js";
 import Testimonial from "components/testimonials/SimplePrimaryBackground.js";
 import FAQ from "components/faqs/TwoColumnPrimaryBackground.js";
+import GetStarted from "components/cta/GetStartedLight.js";
 import Footer from "components/footers/FooterRemix.js";
 import serverillustration2ImageSrc from "images/server-illustration-2.svg"
 import serverSecureIllustrationImageSrc from "images/server-secure-illustration.svg"
@@ -18,8 +19,13 @@ import SimpleIconImage from "images/simple-icon.svg";
 // ─────────────────────────────────────────────────────────────────────────────
 // LANDING PAGE: SOPAN REMIX
 // Demo basis: HostingCloudLandingPage.js
-// Urutan section TIDAK berubah dari aslinya: Hero → Features → Pricing →
-//   MainFeature × 2 → Testimonial → FAQ → Footer
+// Urutan section dasarnya TIDAK berubah dari aslinya: Hero → Features →
+//   Pricing → MainFeature × 2 → Testimonial → FAQ → Footer
+// Tambahan: 1 section CTA ("Dengarkan Karya", pakai GetStartedLight yang
+//   sudah ada di template) disisipkan setelah MainFeature 2, sebelum
+//   Testimonial — jadi alurnya: ...MainFeature 2 → CTA Dengarkan Karya →
+//   Testimonial → FAQ → Footer. Tombol utamanya mengarah ke halaman daftar
+//   karya member (/remix/karya).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default () => {
@@ -103,6 +109,17 @@ export default () => {
         imageSrc={serverSecureIllustrationImageSrc}
         buttonRounded={false}
         textOnLeft={false}
+      />
+
+      {/* ── CTA → Dengarkan Karya ── mengarahkan ke halaman daftar karya member (/remix/karya) */}
+      <GetStarted
+        subheading="Karya Member"
+        heading="Sudah Dengar Hasil Karya Kami?"
+        primaryLinkText="Dengarkan Karya"
+        primaryLinkUrl="/remix/karya"
+        secondaryLinkText="Join Sekarang"
+        secondaryLinkUrl="/remix/join"
+        pushDownFooter={false}
       />
 
       {/* ── TESTIMONIAL → Member Spotlight ── diedit via props di file demo ini */}
