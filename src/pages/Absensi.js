@@ -62,8 +62,11 @@ const LoginPromptText = tw.p`text-sm text-gray-600 mb-6`;
 const LoginButton = tw(PrimaryButtonBase)`w-full py-5 text-base`;
 
 const AbsensiButton = styled.button`
-  ${tw`w-full tracking-wide font-black text-lg bg-primary-500 text-gray-100 py-5 rounded-lg hover:bg-primary-700 transition-all duration-300 focus:outline-none focus:shadow-outline`}
+  ${tw`w-full flex items-center justify-center tracking-wide font-black text-lg bg-primary-500 text-gray-100 py-5 rounded-lg hover:bg-primary-700 transition-all duration-300 focus:outline-none focus:shadow-outline`}
   ${(props) => props.disabled && tw`opacity-50 cursor-not-allowed hover:bg-primary-500`}
+`;
+const Spinner = styled.span`
+  ${tw`inline-block w-5 h-5 mr-3 rounded-full border-2 border-gray-100 border-t-transparent animate-spin`}
 `;
 
 const HeadingContainer = tw.div`text-center mb-10`;
@@ -149,6 +152,7 @@ export default () => {
   // LoginRemix.js). null kalau belum login sama sekali.
   const [currentMember, setCurrentMember] = useState(() => getSession());
   const [avatarError, setAvatarError] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   // Cek ulang status buka/tutup absensi secara berkala (gak perlu tiap detik
@@ -218,62 +222,76 @@ export default () => {
   ];
 
   const handleAbsen = () => {
-    // 0) Harus login dulu
-    if (!currentMember) {
-      setAlertInfo({
-        show: true,
-        type: "error",
-        title: "Belum Login",
-        message: "Login dulu pakai akun member kamu sebelum melakukan absensi.",
-      });
-      return;
-    }
+    if (isSubmitting) return; // cegah klik dobel selagi loading
 
-    // 1) Cek jendela waktu absensi
-    if (status === "not-started") {
-      setAlertInfo({
-        show: true,
-        type: "error",
-        title: "Absensi Belum Dibuka",
-        message: `Absensi baru dibuka mulai ${formatWindow(SESSION_OPEN_AT)}. Coba lagi nanti ya.`,
-      });
-      return;
-    }
-    if (status === "closed") {
-      setAlertInfo({
-        show: true,
-        type: "error",
-        title: "Absensi Telah Ditutup",
-        message: "Waktu absensi untuk sesi ini sudah berakhir. Hubungi admin kalau ada kendala.",
-      });
-      return;
-    }
+    setIsSubmitting(true);
 
-    // 2) Cek duplikat (sudah absen sebelumnya di sesi ini)
-    if (alreadyAbsen) {
+    // TODO-FIREBASE: nanti bagian dalam setTimeout ini diganti jadi
+    // await push()/onValue() ke Firebase, jadi spinner otomatis nyala
+    // selama proses network beneran, bukan delay buatan kayak sekarang.
+    setTimeout(() => {
+      // 0) Harus login dulu
+      if (!currentMember) {
+        setAlertInfo({
+          show: true,
+          type: "error",
+          title: "Belum Login",
+          message: "Login dulu pakai akun member kamu sebelum melakukan absensi.",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 1) Cek jendela waktu absensi
+      if (status === "not-started") {
+        setAlertInfo({
+          show: true,
+          type: "error",
+          title: "Absensi Belum Dibuka",
+          message: `Absensi baru dibuka mulai ${formatWindow(SESSION_OPEN_AT)}. Coba lagi nanti ya.`,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      if (status === "closed") {
+        setAlertInfo({
+          show: true,
+          type: "error",
+          title: "Absensi Telah Ditutup",
+          message: "Waktu absensi untuk sesi ini sudah berakhir. Hubungi admin kalau ada kendala.",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 2) Cek duplikat (sudah absen sebelumnya di sesi ini)
+      if (alreadyAbsen) {
+        setAlertInfo({
+          show: true,
+          type: "error",
+          title: "Sudah Tercatat",
+          message: `Kamu (${currentMember.username}) sudah melakukan absensi sebelumnya di sesi ini.`,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 3) Simpan absensi — nama diambil otomatis dari akun yang sedang login
+      // TODO-FIREBASE: ganti setAttendees(...) ini dengan push() ke
+      // absensi/records/{sessionId} di Firebase Realtime Database, berisi
+      // { id: currentMember.id, name: currentMember.username, timestamp }.
+      setAttendees((prev) => [
+        ...prev,
+        { id: currentMember.id, name: currentMember.username, timestamp: Date.now() },
+      ]);
       setAlertInfo({
         show: true,
-        type: "error",
-        title: "Sudah Tercatat",
-        message: `Kamu (${currentMember.username}) sudah melakukan absensi sebelumnya di sesi ini.`,
+        type: "success",
+        title: "Absensi Berhasil!",
+        message: `Terima kasih, ${currentMember.username}. Kehadiran kamu sudah tercatat.`,
       });
-      return;
-    }
-
-    // 3) Simpan absensi — nama diambil otomatis dari akun yang sedang login
-    // TODO-FIREBASE: ganti setAttendees(...) ini dengan push() ke
-    // absensi/records/{sessionId} di Firebase Realtime Database, berisi
-    // { id: currentMember.id, name: currentMember.username, timestamp }.
-    setAttendees((prev) => [
-      ...prev,
-      { id: currentMember.id, name: currentMember.username, timestamp: Date.now() },
-    ]);
-    setAlertInfo({
-      show: true,
-      type: "success",
-      title: "Absensi Berhasil!",
-      message: `Terima kasih, ${currentMember.username}. Kehadiran kamu sudah tercatat.`,
-    });
+      setIsSubmitting(false);
+    }, 700);
   };
 
   return (
@@ -311,8 +329,17 @@ export default () => {
                   <>
                     <WelcomeText>Login sebagai</WelcomeText>
                     <MemberNameText>{currentMember.username}</MemberNameText>
-                    <AbsensiButton onClick={handleAbsen} disabled={alreadyAbsen || status === "closed"}>
-                      {alreadyAbsen ? "SUDAH ABSEN" : "ABSENSI"}
+                    <AbsensiButton onClick={handleAbsen} disabled={alreadyAbsen || status === "closed" || isSubmitting}>
+                      {isSubmitting ? (
+                        <>
+                          <Spinner />
+                          MEMPROSES...
+                        </>
+                      ) : alreadyAbsen ? (
+                        "SUDAH ABSEN"
+                      ) : (
+                        "ABSENSI"
+                      )}
                     </AbsensiButton>
                   </>
                 ) : (
