@@ -8,9 +8,15 @@ import { Container, ContentWithPaddingXl } from "components/misc/Layouts.js";
 import { SectionHeading, Subheading as SubheadingBase } from "components/misc/Headings";
 import { SectionDescription } from "components/misc/Typography";
 import ProfileThreeColGrid from "components/cards/ProfileThreeColGrid.js";
-import { ReactComponent as TwitterIcon } from "images/twitter-icon.svg";
-import { ReactComponent as LinkedinIcon } from "images/linkedin-icon.svg";
-import { ReactComponent as GithubIcon } from "images/github-icon.svg";
+import HeaderBase, {
+  LogoLink as LogoLinkBase,
+  NavLinks,
+  NavLink,
+  PrimaryLink,
+} from "components/headers/light.js";
+import logoImageSrc from "images/logo-sopan.png";
+import { ReactComponent as TiktokIcon } from "images/tiktok-icon.svg";
+import { ReactComponent as YoutubeIcon } from "images/youtube-icon.svg";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MEMBER ROSTER: SOPAN REMIX (/remix/members)
@@ -44,9 +50,8 @@ export const remixMembers = [
     socialMedia: "@rizky.aditya", // PLACEHOLDER
     works: ["Beat - Neon Vibes", "Remix - Lost Signal"], // PLACEHOLDER
     links: [
-      { url: "https://twitter.com", icon: TwitterIcon },
-      { url: "https://linkedin.com", icon: LinkedinIcon },
-      { url: "https://github.com", icon: GithubIcon },
+      { url: "https://www.tiktok.com/@team.sopan.remix", icon: TiktokIcon },
+      { url: "https://youtube.com", icon: YoutubeIcon },
     ],
   },
   {
@@ -59,9 +64,8 @@ export const remixMembers = [
     socialMedia: "@daffa.pratama", // PLACEHOLDER
     works: ["Mix - Midnight Drive", "Bootleg - Summer Haze"], // PLACEHOLDER
     links: [
-      { url: "https://twitter.com", icon: TwitterIcon },
-      { url: "https://linkedin.com", icon: LinkedinIcon },
-      { url: "https://github.com", icon: GithubIcon },
+      { url: "https://www.tiktok.com/@team.sopan.remix", icon: TiktokIcon },
+      { url: "https://youtube.com", icon: YoutubeIcon },
     ],
   },
   {
@@ -74,9 +78,8 @@ export const remixMembers = [
     socialMedia: "@bagas.ari", // PLACEHOLDER
     works: ["Master - Galaxy Trip", "Sound Design - Eclipse"], // PLACEHOLDER
     links: [
-      { url: "https://twitter.com", icon: TwitterIcon },
-      { url: "https://linkedin.com", icon: LinkedinIcon },
-      { url: "https://github.com", icon: GithubIcon },
+      { url: "https://www.tiktok.com/@team.sopan.remix", icon: TiktokIcon },
+      { url: "https://youtube.com", icon: YoutubeIcon },
     ],
   },
   {
@@ -89,9 +92,8 @@ export const remixMembers = [
     socialMedia: "@salsa.nanda", // PLACEHOLDER
     works: ["Master - Urban Pulse", "Master - Chill Frequency"], // PLACEHOLDER
     links: [
-      { url: "https://twitter.com", icon: TwitterIcon },
-      { url: "https://linkedin.com", icon: LinkedinIcon },
-      { url: "https://github.com", icon: GithubIcon },
+      { url: "https://www.tiktok.com/@team.sopan.remix", icon: TiktokIcon },
+      { url: "https://youtube.com", icon: YoutubeIcon },
     ],
   },
   {
@@ -104,9 +106,8 @@ export const remixMembers = [
     socialMedia: "@farhan.zaki", // PLACEHOLDER
     works: ["Remix - Neon Sunrise", "Bootleg - Analog Dreams"], // PLACEHOLDER
     links: [
-      { url: "https://twitter.com", icon: TwitterIcon },
-      { url: "https://linkedin.com", icon: LinkedinIcon },
-      { url: "https://github.com", icon: GithubIcon },
+      { url: "https://www.tiktok.com/@team.sopan.remix", icon: TiktokIcon },
+      { url: "https://youtube.com", icon: YoutubeIcon },
     ],
   },
   {
@@ -119,14 +120,31 @@ export const remixMembers = [
     socialMedia: "@tiara.dewi", // PLACEHOLDER
     works: ["Set - Neon Festival", "Beat - Bass Drop 01"], // PLACEHOLDER
     links: [
-      { url: "https://twitter.com", icon: TwitterIcon },
-      { url: "https://linkedin.com", icon: LinkedinIcon },
-      { url: "https://github.com", icon: GithubIcon },
+      { url: "https://www.tiktok.com/@team.sopan.remix", icon: TiktokIcon },
+      { url: "https://youtube.com", icon: YoutubeIcon },
     ],
   },
 ];
 
+const StyledHeader = tw(HeaderBase)`max-w-none py-4`;
+const LogoLink = tw(LogoLinkBase)`text-gray-900`;
+
 export default () => {
+  const logoLink = (
+    <LogoLink href="/remix">
+      <img src={logoImageSrc} alt="Logo" />
+      Sopan Remix
+    </LogoLink>
+  );
+  const navLinks = [
+    <NavLinks key={1}>
+      <NavLink href="/remix">Home</NavLink>
+      <NavLink href="/remix/members">Member</NavLink>
+      <NavLink href="/remix/login">Login</NavLink>
+      <PrimaryLink href="/remix/join">Join Sekarang</PrimaryLink>
+    </NavLinks>
+  ];
+
   // Bentuk data untuk ProfileThreeColGrid — tambahkan navigasi ke profile page
   const cards = remixMembers.map(member => ({
     imageSrc: member.imageSrc,
@@ -139,6 +157,7 @@ export default () => {
   return (
     <AnimationRevealPage>
       <Container>
+        <StyledHeader logoLink={logoLink} links={navLinks} />
         <ContentWithPaddingXl>
 
           {/* Info pendiri & admin divisi */}
@@ -163,17 +182,17 @@ export default () => {
 
           {/* Render grid menggunakan ProfileThreeColGrid dengan data Remix.
               Kartu dibuat clickable via wrapper Link dari react-router-dom. */}
-          <div tw="flex flex-wrap flex-row justify-center sm:max-w-2xl lg:max-w-5xl mx-auto">
+          <div tw="flex flex-wrap flex-row justify-center sm:max-w-2xl lg:max-w-4xl mx-auto">
             {remixMembers.map((member) => (
               <Link
                 key={member.id}
                 to={`/remix/members/${member.id}`}
-                tw="mt-24 w-full sm:w-1/2 lg:w-1/3 flex flex-col items-center no-underline"
+                tw="mt-16 w-full sm:w-1/2 flex flex-col items-center no-underline"
                 style={{ textDecoration: "none" }}
               >
                 <div
                   style={{ backgroundImage: `url("${member.imageSrc}")` }}
-                  tw="w-64 h-64 bg-contain bg-center rounded cursor-pointer hover:opacity-75 transition duration-300"
+                  tw="w-64 h-64 bg-contain bg-center rounded-lg cursor-pointer hover:opacity-75 transition duration-300"
                 />
                 <div tw="flex flex-col items-center mt-6">
                   <span tw="uppercase font-bold tracking-widest text-xs text-primary-500">
@@ -190,9 +209,8 @@ export default () => {
       href={link.url}
       onClick={e => e.stopPropagation()}
     >
-      {link.icon === TwitterIcon && <TwitterIcon tw="fill-current w-6 h-6" />}
-      {link.icon === LinkedinIcon && <LinkedinIcon tw="fill-current w-6 h-6" />}
-      {link.icon === GithubIcon && <GithubIcon tw="fill-current w-6 h-6" />}
+      {link.icon === TiktokIcon && <TiktokIcon tw="fill-current w-6 h-6" />}
+      {link.icon === YoutubeIcon && <YoutubeIcon tw="fill-current w-6 h-6" />}
     </a>
   ))}
 </div>
