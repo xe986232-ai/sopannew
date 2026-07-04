@@ -14,9 +14,13 @@ import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.s
 import { ReactComponent as CopyIcon } from "feather-icons/dist/icons/copy.svg";
 import { ReactComponent as CheckIcon } from "feather-icons/dist/icons/check.svg";
 import { ReactComponent as LinkIcon } from "feather-icons/dist/icons/link.svg";
+import { ReactComponent as ChevronDownIcon } from "feather-icons/dist/icons/chevron-down.svg";
+import { ReactComponent as DownloadIcon } from "feather-icons/dist/icons/download.svg";
 import { getSession, clearSession } from "helpers/session.js";
 import { useRemixMembers } from "helpers/useRemixMembers.js";
 import { useAbsensiSessions, useAbsensiRecords, createAbsensiSession } from "helpers/useAbsensi.js";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DASHBOARD ADMIN — ABSENSI SOPAN TEAM (/absensi/admin)
@@ -30,11 +34,21 @@ import { useAbsensiSessions, useAbsensiRecords, createAbsensiSession } from "hel
 //      "{origin}/absensi/{token}" + tombol Copy Link, buat di-share admin ke
 //      member. Member TIDAK bisa buka halaman absensi tanpa link ini —
 //      lihat guard token di pages/Absensi.js.
-//   3) Admin bisa pilih salah satu sesi yang sudah dibuat, lalu lihat member
-//      mana yang SUDAH absen dan mana yang BELUM, dengan data member diambil
-//      dari path "users" (= member Sopan Remix, lewat helpers/useRemixMembers.js).
-//   4) Semua data realtime (onValue) — begitu member absen di halaman
+//   3) Tiap sesi absensi ditampilkan sebagai GRUP ACCORDION (bisa
+//      dibuka/tutup satu-satu) supaya daftar sesi tidak numpuk kalau makin
+//      banyak sesi yang dibuat — hanya konten sesi yang lagi dibuka yang
+//      "mengambil tempat" secara visual.
+//   4) Di dalam tiap sesi yang dibuka, admin bisa lihat member mana yang
+//      SUDAH absen dan mana yang BELUM (lengkap dengan foto profil member
+//      dari field "profilePic"), dengan data member diambil dari path
+//      "users" (= member Sopan Remix, lewat helpers/useRemixMembers.js).
+//   5) Admin bisa download rekap kehadiran per-sesi dalam bentuk PDF
+//      (tombol "Download PDF" di dalam tiap sesi).
+//   6) Semua data realtime (onValue) — begitu member absen di halaman
 //      pages/Absensi.js, daftar di sini otomatis update tanpa refresh.
+//      Data kehadiran (records) HANYA di-listen untuk sesi yang lagi
+//      dibuka (accordion open) supaya tidak buka banyak listener Firebase
+//      sekaligus untuk sesi yang sedang tidak dilihat.
 //
 // AKSES: halaman ini hanya untuk user dengan role "admin" pada path
 // users/{id}/role di Firebase. Kalau belum ada admin, ubah manual dulu field
@@ -56,63 +70,97 @@ const LogoutNavButton = styled.button`
   ${tw`flex items-center text-sm lg:mx-6 my-2 lg:my-0 font-semibold tracking-wide transition duration-300 px-4 py-2 rounded-full bg-red-100 text-red-400 hover:bg-red-200 hover:text-red-500 focus:outline-none`}
 `;
 
-// ── Layout dua kolom: daftar sesi (kiri) + detail rekap (kanan) ──
-const DashboardGrid = tw.div`grid grid-cols-1 lg:grid-cols-3 gap-8`;
-const SessionListColumn = tw.div`lg:col-span-1`;
-const DetailColumn = tw.div`lg:col-span-2`;
+// ── Daftar sesi absensi sebagai grup accordion (satu per satu, bisa buka/tutup) ──
+const SessionAccordionList = tw.div`flex flex-col gap-4`;
+const EmptySessionText = tw.p`text-sm text-gray-500 px-2 py-10 text-center bg-gray-100 rounded-lg`;
 
-const SessionListCard = tw.div`bg-gray-100 rounded-lg p-4`;
-const SessionListTitle = tw.h5`text-sm font-bold uppercase tracking-wide text-gray-500 mb-4 px-2`;
-const SessionItem = styled.button`
-  ${tw`w-full text-left px-4 py-3 rounded-lg mb-2 transition duration-200 focus:outline-none`}
-  ${(props) => (props.active ? tw`bg-primary-500 text-gray-100` : tw`bg-white text-gray-900 hover:bg-gray-200`)}
+const AccordionCard = tw.div`bg-gray-100 rounded-lg overflow-hidden`;
+
+const AccordionHeader = styled.button`
+  ${tw`w-full flex items-center justify-between gap-4 px-5 py-4 text-left transition duration-200 focus:outline-none hover:bg-gray-200`}
 `;
-const SessionItemTitle = tw.p`font-bold text-sm`;
-const SessionItemDate = styled.p`
-  ${tw`text-xs mt-1`}
-  ${(props) => (props.active ? tw`text-gray-200` : tw`text-gray-500`)}
-`;
-const SessionStatusPill = styled.span`
-  ${tw`inline-block mt-2 text-xs font-bold px-2 rounded-full`}
-  padding-top: 0.125rem;
-  padding-bottom: 0.125rem;
+const AccordionHeaderLeft = tw.div`flex items-center gap-3 min-w-0 flex-1`;
+const AccordionHeaderRight = tw.div`flex items-center gap-3 flex-shrink-0`;
+const AccordionTitleBlock = tw.div`min-w-0`;
+const AccordionTitle = tw.p`font-bold text-sm sm:text-base text-gray-900 truncate`;
+const AccordionDateRange = tw.p`text-xs text-gray-500 mt-1 truncate`;
+
+const StatusPill = styled.span`
+  ${tw`inline-block flex-shrink-0 text-xs font-bold px-3 rounded-full whitespace-nowrap`}
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
   ${(props) => {
     if (props.status === "open") return tw`bg-green-100 text-green-600`;
     if (props.status === "not-started") return tw`bg-yellow-100 text-yellow-700`;
     return tw`bg-gray-300 text-gray-600`;
   }}
 `;
-const EmptySessionText = tw.p`text-sm text-gray-500 px-2 py-6 text-center`;
 
-const DetailCard = tw.div`bg-gray-100 rounded-lg p-6`;
-const DetailHeaderRow = tw.div`flex flex-wrap items-start justify-between gap-4 mb-6`;
-const DetailTitle = tw.h4`text-xl font-bold text-gray-900`;
-const DetailDateRange = tw.p`text-sm text-gray-500 mt-1`;
+const AccordionChevron = styled.div`
+  ${tw`flex-shrink-0 text-gray-400 transition-transform duration-300`}
+  ${(props) => props.open && tw`transform rotate-180 text-primary-500`}
+`;
 
-const StatsRow = tw.div`grid grid-cols-3 gap-4 mb-8`;
-const StatBox = tw.div`bg-white rounded-lg p-4 text-center shadow`;
-const StatValue = tw.p`text-2xl font-black text-gray-900`;
+// Trik CSS grid-template-rows: 0fr -> 1fr buat animasi expand/collapse yang
+// halus tanpa perlu hitung tinggi elemen manual pakai JS.
+const AccordionBodyOuter = styled.div`
+  display: grid;
+  transition: grid-template-rows 0.3s ease;
+  grid-template-rows: ${(props) => (props.open ? "1fr" : "0fr")};
+`;
+const AccordionBodyInner = tw.div`overflow-hidden`;
+const AccordionBodyContent = tw.div`px-5 pb-5 pt-4 border-t border-gray-300 border-opacity-50`;
+
+const StatsRow = tw.div`grid grid-cols-3 gap-3 sm:gap-4 mb-6`;
+const StatBox = tw.div`bg-white rounded-lg p-3 sm:p-4 text-center shadow`;
+const StatValue = tw.p`text-xl sm:text-2xl font-black text-gray-900`;
 const StatLabel = tw.p`text-xs text-gray-500 mt-1 uppercase tracking-wide`;
 
-const MemberListTitle = tw.h5`text-sm font-bold uppercase tracking-wide text-gray-500 mb-3`;
-const MemberRow = tw.div`flex items-center justify-between bg-white rounded-lg px-5 py-3 mb-2 shadow-sm`;
-const MemberAvatar = tw.div`w-8 h-8 rounded-full bg-primary-500 text-gray-100 flex items-center justify-center font-bold mr-4 flex-shrink-0 text-sm`;
-const MemberName = tw.span`font-medium text-gray-900`;
-const AttendedBadge = tw.span`text-xs font-bold text-green-600 bg-green-100 px-3 py-1 rounded-full`;
-const NotAttendedBadge = tw.span`text-xs font-bold text-gray-500 bg-gray-200 px-3 py-1 rounded-full`;
-const AttendedTime = tw.span`text-xs text-gray-400 ml-3`;
-
-const EmptyDetailState = tw.div`bg-gray-100 rounded-lg p-12 text-center text-gray-500`;
-
 // ── Kotak "Link Absensi" (buat di-share admin ke member) ──
-const ShareLinkBox = tw.div`flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white rounded-lg p-3 mb-6 shadow-sm`;
+const ShareLinkBox = tw.div`flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white rounded-lg p-3 mb-4 shadow-sm`;
 const ShareLinkIconWrap = tw.div`hidden sm:flex items-center justify-center w-8 h-8 rounded-lg bg-primary-500 text-gray-100 flex-shrink-0`;
 const ShareLinkText = tw.p`flex-1 text-sm text-gray-700 truncate font-mono px-1`;
 const ShareCopyButton = styled.button`
   ${tw`flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition duration-200 focus:outline-none flex-shrink-0`}
   ${(props) => (props.copied ? tw`bg-green-100 text-green-600` : tw`bg-primary-500 text-gray-100 hover:bg-primary-700`)}
 `;
-const NoTokenText = tw.p`text-xs text-gray-400 italic mb-6`;
+const NoTokenText = tw.p`text-xs text-gray-400 italic mb-4`;
+
+// ── Baris aksi (download PDF, dst) ──
+const ActionsRow = tw.div`flex flex-wrap items-center justify-end gap-3 mb-6`;
+const DownloadButton = styled.button`
+  ${tw`flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg bg-gray-900 text-gray-100 hover:bg-gray-700 transition duration-200 focus:outline-none flex-shrink-0`}
+  ${(props) => props.disabled && tw`opacity-50 cursor-not-allowed`}
+`;
+
+// ── Daftar member: dirapikan pakai list card + avatar (foto profil / inisial) ──
+const MemberListHeader = tw.div`flex items-center justify-between gap-3 mb-3`;
+const MemberListTitle = tw.h5`text-sm font-bold uppercase tracking-wide text-gray-500`;
+const MemberCount = tw.span`text-xs text-gray-400 flex-shrink-0`;
+
+const MemberListWrap = tw.div`bg-white rounded-lg shadow-sm divide-y divide-gray-100 overflow-hidden`;
+const MemberRow = tw.div`flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-100 transition duration-150`;
+const MemberLeft = tw.div`flex items-center gap-3 min-w-0`;
+
+const MemberAvatarImg = styled.img`
+  ${tw`border border-gray-200 flex-shrink-0`}
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  object-fit: cover;
+`;
+const MemberAvatarFallback = tw.div`w-10 h-10 rounded-full bg-primary-500 text-gray-100 flex items-center justify-center font-bold flex-shrink-0 text-sm`;
+
+const MemberInfo = tw.div`min-w-0`;
+const MemberName = tw.p`font-semibold text-sm text-gray-900 truncate`;
+const MemberPosition = tw.p`text-xs text-gray-500 truncate`;
+
+const MemberRight = tw.div`flex items-center gap-2 flex-shrink-0`;
+const AttendedBadge = tw.span`text-xs font-bold text-green-600 bg-green-100 px-3 py-1 rounded-full whitespace-nowrap`;
+const NotAttendedBadge = tw.span`text-xs font-bold text-gray-500 bg-gray-200 px-3 py-1 rounded-full whitespace-nowrap`;
+const AttendedTime = tw.span`hidden sm:inline text-xs text-gray-400 whitespace-nowrap`;
+
+const EmptyDetailState = tw.div`bg-gray-100 rounded-lg p-8 text-center text-gray-500 text-sm`;
 
 // ── Modal "Create Absensi" ──
 const ModalOverlay = tw.div`fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4`;
@@ -157,30 +205,77 @@ function toDatetimeLocalValue(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export default () => {
-  const [currentMember] = useState(() => getSession());
-  const navigate = useNavigate();
+// Bikin & download PDF rekap kehadiran untuk satu sesi absensi. Foto profil
+// SENGAJA tidak disertakan di PDF (biar konsisten & cepat tanpa tergantung
+// CORS/loading gambar dari luar) — PDF fokus ke data: nama, posisi, status,
+// dan jam absen.
+function buildAttendancePdf(session, memberRows, attendedCount, notAttendedCount) {
+  const doc = new jsPDF();
 
-  const { sessions } = useAbsensiSessions();
-  const { members: allMembers, loading: membersLoading } = useRemixMembers();
+  doc.setFontSize(15);
+  doc.setTextColor(20, 20, 20);
+  doc.text(`Rekap Absensi — ${session.title}`, 14, 18);
 
-  const [selectedSessionId, setSelectedSessionId] = useState(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [formTitle, setFormTitle] = useState("");
-  const [formOpenAt, setFormOpenAt] = useState(() => toDatetimeLocalValue(new Date()));
-  const [formCloseAt, setFormCloseAt] = useState("");
-  const [formError, setFormError] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
-  const [copiedToken, setCopiedToken] = useState(null);
+  doc.setFontSize(10);
+  doc.setTextColor(110, 110, 110);
+  doc.text(`${formatDate(session.openAt)}  —  ${formatDate(session.closeAt)}`, 14, 25);
+  doc.text(
+    `Total Member: ${memberRows.length}   |   Sudah Absen: ${attendedCount}   |   Belum Absen: ${notAttendedCount}`,
+    14,
+    31
+  );
 
-  const now = Date.now();
+  autoTable(doc, {
+    startY: 37,
+    head: [["No", "Nama", "Posisi", "Status", "Jam Absen"]],
+    body: memberRows.map((m, i) => [
+      i + 1,
+      m.name,
+      m.position || "-",
+      m.attended ? "Sudah Absen" : "Belum Absen",
+      m.attended
+        ? new Date(m.attendedAt).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })
+        : "-",
+    ]),
+    styles: { fontSize: 9, cellPadding: 3 },
+    headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [245, 245, 245] },
+    columnStyles: { 0: { cellWidth: 12 } },
+  });
 
-  // Sesi yang lagi dipilih untuk dilihat detailnya. Default: sesi paling
-  // baru dibuat (sessions sudah di-sort terbaru-dulu di helpers/useAbsensi.js).
-  const activeSessionId = selectedSessionId || (sessions[0] && sessions[0].id) || null;
-  const selectedSession = sessions.find((s) => s.id === activeSessionId) || null;
+  const safeTitle = session.title.trim().replace(/[^a-z0-9]+/gi, "_").slice(0, 60) || "absensi";
+  doc.save(`Absensi-${safeTitle}.pdf`);
+}
 
-  const { records } = useAbsensiRecords(activeSessionId);
+// Avatar member: pakai foto profil dari field "profilePic" kalau ada &
+// berhasil dimuat, fallback ke lingkaran inisial nama kalau tidak ada foto
+// atau gagal dimuat (link rusak/expired).
+function MemberAvatar({ name, profilePic }) {
+  const [imgError, setImgError] = useState(false);
+  const initial = (name || "?").trim().charAt(0).toUpperCase() || "?";
+
+  if (profilePic && !imgError) {
+    return <MemberAvatarImg src={profilePic} alt={name} onError={() => setImgError(true)} />;
+  }
+  return <MemberAvatarFallback>{initial}</MemberAvatarFallback>;
+}
+
+// Satu grup accordion = satu sesi absensi. Data kehadiran (records) HANYA
+// di-listen dari Firebase kalau sesi ini lagi dibuka ("isOpen"), supaya
+// tidak ada banyak listener realtime nyala bersamaan untuk sesi yang
+// sedang tidak dilihat admin.
+function SessionAccordionItem({
+  session,
+  isOpen,
+  onToggle,
+  allMembers,
+  membersLoading,
+  copiedToken,
+  onCopyLink,
+  getAbsensiLink,
+}) {
+  const { records } = useAbsensiRecords(isOpen ? session.id : null);
+  const status = getSessionStatus(session, Date.now());
 
   const memberRows = useMemo(() => {
     return allMembers
@@ -198,6 +293,157 @@ export default () => {
   const attendedCount = memberRows.filter((m) => m.attended).length;
   const notAttendedCount = memberRows.length - attendedCount;
 
+  const handleDownloadPdf = () => {
+    if (membersLoading || memberRows.length === 0) return;
+    buildAttendancePdf(session, memberRows, attendedCount, notAttendedCount);
+  };
+
+  return (
+    <AccordionCard>
+      <AccordionHeader type="button" onClick={onToggle} aria-expanded={isOpen}>
+        <AccordionHeaderLeft>
+          <AccordionTitleBlock>
+            <AccordionTitle>{session.title}</AccordionTitle>
+            <AccordionDateRange>
+              {formatDate(session.openAt)} — {formatDate(session.closeAt)}
+            </AccordionDateRange>
+          </AccordionTitleBlock>
+        </AccordionHeaderLeft>
+        <AccordionHeaderRight>
+          <StatusPill status={status}>
+            {status === "open" && "Sedang Berlangsung"}
+            {status === "not-started" && "Belum Dimulai"}
+            {status === "closed" && "Selesai"}
+          </StatusPill>
+          <AccordionChevron open={isOpen}>
+            <ChevronDownIcon tw="w-5 h-5" />
+          </AccordionChevron>
+        </AccordionHeaderRight>
+      </AccordionHeader>
+
+      <AccordionBodyOuter open={isOpen}>
+        <AccordionBodyInner>
+          <AccordionBodyContent>
+            {session.token ? (
+              <ShareLinkBox>
+                <ShareLinkIconWrap>
+                  <LinkIcon tw="w-4 h-4" />
+                </ShareLinkIconWrap>
+                <ShareLinkText>{getAbsensiLink(session.token)}</ShareLinkText>
+                <ShareCopyButton
+                  copied={copiedToken === session.token}
+                  onClick={() => onCopyLink(session.token)}
+                >
+                  {copiedToken === session.token ? (
+                    <>
+                      <CheckIcon tw="w-4 h-4" />
+                      Disalin!
+                    </>
+                  ) : (
+                    <>
+                      <CopyIcon tw="w-4 h-4" />
+                      Copy Link
+                    </>
+                  )}
+                </ShareCopyButton>
+              </ShareLinkBox>
+            ) : (
+              <NoTokenText>
+                Sesi ini dibuat sebelum fitur link diterapkan, jadi belum ada token — buat sesi baru untuk dapat link share.
+              </NoTokenText>
+            )}
+
+            <ActionsRow>
+              <DownloadButton
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={membersLoading || memberRows.length === 0}
+              >
+                <DownloadIcon tw="w-4 h-4" />
+                Download PDF
+              </DownloadButton>
+            </ActionsRow>
+
+            <StatsRow>
+              <StatBox>
+                <StatValue>{membersLoading ? "…" : memberRows.length}</StatValue>
+                <StatLabel>Total Member</StatLabel>
+              </StatBox>
+              <StatBox>
+                <StatValue tw="text-green-600">{membersLoading ? "…" : attendedCount}</StatValue>
+                <StatLabel>Sudah Absen</StatLabel>
+              </StatBox>
+              <StatBox>
+                <StatValue tw="text-gray-400">{membersLoading ? "…" : notAttendedCount}</StatValue>
+                <StatLabel>Belum Absen</StatLabel>
+              </StatBox>
+            </StatsRow>
+
+            <MemberListHeader>
+              <MemberListTitle>Daftar Member</MemberListTitle>
+              <MemberCount>{membersLoading ? "" : `${memberRows.length} member`}</MemberCount>
+            </MemberListHeader>
+
+            {membersLoading && <EmptyDetailState>Memuat data member...</EmptyDetailState>}
+            {!membersLoading && memberRows.length === 0 && (
+              <EmptyDetailState>Belum ada data member di path "users".</EmptyDetailState>
+            )}
+
+            {!membersLoading && memberRows.length > 0 && (
+              <MemberListWrap>
+                {memberRows.map((m) => (
+                  <MemberRow key={m.id}>
+                    <MemberLeft>
+                      <MemberAvatar name={m.name} profilePic={m.profilePic} />
+                      <MemberInfo>
+                        <MemberName>{m.name}</MemberName>
+                        <MemberPosition>{m.position}</MemberPosition>
+                      </MemberInfo>
+                    </MemberLeft>
+                    <MemberRight>
+                      {m.attended ? (
+                        <>
+                          <AttendedTime>
+                            {new Date(m.attendedAt).toLocaleTimeString("id-ID", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </AttendedTime>
+                          <AttendedBadge>Sudah Absen</AttendedBadge>
+                        </>
+                      ) : (
+                        <NotAttendedBadge>Belum Absen</NotAttendedBadge>
+                      )}
+                    </MemberRight>
+                  </MemberRow>
+                ))}
+              </MemberListWrap>
+            )}
+          </AccordionBodyContent>
+        </AccordionBodyInner>
+      </AccordionBodyOuter>
+    </AccordionCard>
+  );
+}
+
+export default () => {
+  const [currentMember] = useState(() => getSession());
+  const navigate = useNavigate();
+
+  const { sessions } = useAbsensiSessions();
+  const { members: allMembers, loading: membersLoading } = useRemixMembers();
+
+  // Sesi yang lagi "dibuka" (accordion expanded). null = semua tertutup.
+  const [openSessionId, setOpenSessionId] = useState(null);
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [formTitle, setFormTitle] = useState("");
+  const [formOpenAt, setFormOpenAt] = useState(() => toDatetimeLocalValue(new Date()));
+  const [formCloseAt, setFormCloseAt] = useState("");
+  const [formError, setFormError] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const [copiedToken, setCopiedToken] = useState(null);
+
   const handleLogout = () => {
     clearSession();
     navigate("/remix/login");
@@ -209,6 +455,10 @@ export default () => {
     setFormCloseAt("");
     setFormError("");
     setShowCreateModal(true);
+  };
+
+  const toggleSession = (sessionId) => {
+    setOpenSessionId((prev) => (prev === sessionId ? null : sessionId));
   };
 
   const handleCreateSession = async () => {
@@ -241,7 +491,8 @@ export default () => {
         openAt,
         closeAt,
       });
-      setSelectedSessionId(newSessionId);
+      // Sesi baru langsung dibuka accordion-nya, sisanya otomatis tertutup.
+      setOpenSessionId(newSessionId);
       setShowCreateModal(false);
     } catch (err) {
       setFormError("Gagal menyimpan ke database. Coba lagi.");
@@ -317,134 +568,27 @@ export default () => {
             </CreateButton>
           </HeadingRow>
 
-          <DashboardGrid>
-            {/* ── KOLOM KIRI: daftar sesi ── */}
-            <SessionListColumn>
-              <SessionListCard>
-                <SessionListTitle>Sesi Absensi</SessionListTitle>
-                {sessions.length === 0 && (
-                  <EmptySessionText>
-                    Belum ada sesi absensi. Klik "Create Absensi" untuk membuat yang pertama.
-                  </EmptySessionText>
-                )}
-                {sessions.map((session) => {
-                  const status = getSessionStatus(session, now);
-                  const isActive = session.id === activeSessionId;
-                  return (
-                    <SessionItem
-                      key={session.id}
-                      active={isActive}
-                      onClick={() => setSelectedSessionId(session.id)}
-                    >
-                      <SessionItemTitle>{session.title}</SessionItemTitle>
-                      <SessionItemDate active={isActive}>
-                        {formatDate(session.openAt)} — {formatDate(session.closeAt)}
-                      </SessionItemDate>
-                      <SessionStatusPill status={status}>
-                        {status === "open" && "Sedang Berlangsung"}
-                        {status === "not-started" && "Belum Dimulai"}
-                        {status === "closed" && "Selesai"}
-                      </SessionStatusPill>
-                    </SessionItem>
-                  );
-                })}
-              </SessionListCard>
-            </SessionListColumn>
-
-            {/* ── KOLOM KANAN: detail rekap kehadiran ── */}
-            <DetailColumn>
-              {!selectedSession ? (
-                <EmptyDetailState>
-                  Pilih atau buat sesi absensi untuk melihat rekap kehadiran member.
-                </EmptyDetailState>
-              ) : (
-                <DetailCard>
-                  <DetailHeaderRow>
-                    <div>
-                      <DetailTitle>{selectedSession.title}</DetailTitle>
-                      <DetailDateRange>
-                        {formatDate(selectedSession.openAt)} — {formatDate(selectedSession.closeAt)}
-                      </DetailDateRange>
-                    </div>
-                  </DetailHeaderRow>
-
-                  {selectedSession.token ? (
-                    <ShareLinkBox>
-                      <ShareLinkIconWrap>
-                        <LinkIcon tw="w-4 h-4" />
-                      </ShareLinkIconWrap>
-                      <ShareLinkText>{getAbsensiLink(selectedSession.token)}</ShareLinkText>
-                      <ShareCopyButton
-                        copied={copiedToken === selectedSession.token}
-                        onClick={() => handleCopyLink(selectedSession.token)}
-                      >
-                        {copiedToken === selectedSession.token ? (
-                          <>
-                            <CheckIcon tw="w-4 h-4" />
-                            Disalin!
-                          </>
-                        ) : (
-                          <>
-                            <CopyIcon tw="w-4 h-4" />
-                            Copy Link
-                          </>
-                        )}
-                      </ShareCopyButton>
-                    </ShareLinkBox>
-                  ) : (
-                    <NoTokenText>
-                      Sesi ini dibuat sebelum fitur link diterapkan, jadi belum ada token — buat sesi baru untuk dapat link share.
-                    </NoTokenText>
-                  )}
-
-                  <StatsRow>
-                    <StatBox>
-                      <StatValue>{membersLoading ? "…" : memberRows.length}</StatValue>
-                      <StatLabel>Total Member</StatLabel>
-                    </StatBox>
-                    <StatBox>
-                      <StatValue tw="text-green-600">{membersLoading ? "…" : attendedCount}</StatValue>
-                      <StatLabel>Sudah Absen</StatLabel>
-                    </StatBox>
-                    <StatBox>
-                      <StatValue tw="text-gray-400">{membersLoading ? "…" : notAttendedCount}</StatValue>
-                      <StatLabel>Belum Absen</StatLabel>
-                    </StatBox>
-                  </StatsRow>
-
-                  <MemberListTitle>Daftar Member (dari path "users")</MemberListTitle>
-                  {membersLoading && <EmptyDetailState>Memuat data member...</EmptyDetailState>}
-                  {!membersLoading && memberRows.length === 0 && (
-                    <EmptyDetailState>Belum ada data member di path "users".</EmptyDetailState>
-                  )}
-                  {!membersLoading &&
-                    memberRows.map((m) => (
-                      <MemberRow key={m.id}>
-                        <div tw="flex items-center">
-                          <MemberAvatar>{m.name.trim().charAt(0).toUpperCase()}</MemberAvatar>
-                          <MemberName>{m.name}</MemberName>
-                        </div>
-                        <div tw="flex items-center">
-                          {m.attended ? (
-                            <>
-                              <AttendedBadge>Sudah Absen</AttendedBadge>
-                              <AttendedTime>
-                                {new Date(m.attendedAt).toLocaleTimeString("id-ID", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </AttendedTime>
-                            </>
-                          ) : (
-                            <NotAttendedBadge>Belum Absen</NotAttendedBadge>
-                          )}
-                        </div>
-                      </MemberRow>
-                    ))}
-                </DetailCard>
-              )}
-            </DetailColumn>
-          </DashboardGrid>
+          {sessions.length === 0 ? (
+            <EmptySessionText>
+              Belum ada sesi absensi. Klik "Create Absensi" untuk membuat yang pertama.
+            </EmptySessionText>
+          ) : (
+            <SessionAccordionList>
+              {sessions.map((session) => (
+                <SessionAccordionItem
+                  key={session.id}
+                  session={session}
+                  isOpen={openSessionId === session.id}
+                  onToggle={() => toggleSession(session.id)}
+                  allMembers={allMembers}
+                  membersLoading={membersLoading}
+                  copiedToken={copiedToken}
+                  onCopyLink={handleCopyLink}
+                  getAbsensiLink={getAbsensiLink}
+                />
+              ))}
+            </SessionAccordionList>
+          )}
         </ContentWithPaddingXl>
       </Container>
     </AnimationRevealPage>
