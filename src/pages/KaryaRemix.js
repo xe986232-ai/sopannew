@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import tw from "twin.macro";
 import styled from "styled-components";
 import { css } from "styled-components/macro"; //eslint-disable-line
@@ -15,10 +15,9 @@ import Footer from "components/footers/FooterRemix.js";
 import logoImageSrc from "images/logo-sopan.png";
 import { ReactComponent as PlayIcon } from "feather-icons/dist/icons/play.svg";
 import { ReactComponent as PauseIcon } from "feather-icons/dist/icons/pause.svg";
-import { ReactComponent as SkipBackIcon } from "feather-icons/dist/icons/skip-back.svg";
-import { ReactComponent as SkipForwardIcon } from "feather-icons/dist/icons/skip-forward.svg";
 import { ReactComponent as MoreIcon } from "feather-icons/dist/icons/more-vertical.svg";
 import { ReactComponent as DownloadIcon } from "feather-icons/dist/icons/download.svg";
+import { ReactComponent as ChevronDownIcon } from "feather-icons/dist/icons/chevron-down.svg";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HALAMAN: DENGARKAN KARYA — SOPAN REMIX (/remix/karya)
@@ -29,65 +28,52 @@ import { ReactComponent as DownloadIcon } from "feather-icons/dist/icons/downloa
 //   SectionHeading, Header/Footer Remix yang sudah ada) + tema warna
 //   primary #6415FF, bukan style baru dari luar.
 //
-// FLOW HALAMAN INI:
-// 1. Bagian atas ("hero player") menampilkan karya yang sedang aktif —
-//    avatar besar, judul, creator, tombol prev/play-pause/next, dan bar
-//    frequency besar.
-// 2. Di bawahnya ada daftar SEMUA karya member. Tiap baris: avatar bulat
-//    kiri → progress bar bergaya frequency audio → tombol play/pause kecil
-//    → menu titik tiga untuk download.
-// 3. Klik tombol play/pause KECIL di baris = audio langsung main di situ
-//    saja (mini player mandiri), TIDAK memindahkan tampilan hero di atas.
-// 4. Klik area baris/box lagunya (di luar tombol play & menu titik tiga)
-//    = karya itu yang tampil & diputar di hero player atas ("berpindah ke
-//    tampilan pemutar utama").
-// 5. Judul selalu satu baris (truncate + ellipsis) walau judulnya panjang.
+// FLOW HALAMAN INI (setelah revisi):
+// 1. TIDAK ADA hero player besar lagi di atas — halaman langsung berisi
+//    judul singkat + daftar SEMUA karya member.
+// 2. Tiap baris: avatar bulat kiri → judul/creator → waveform (bentuk bar
+//    frekuensi) → tombol play/pause kecil → menu titik tiga untuk download.
+// 3. Waveform TIDAK dihitung real-time dari audio yang sedang diputar.
+//    Sebagai gantinya, saat baris pertama kali tampil, audionya diambil lalu
+//    di-decode sekali (Web Audio API decodeAudioData) untuk menghasilkan
+//    bentuk gelombang (rata-rata amplitudo per segmen) — baru itu yang
+//    ditampilkan sebagai bar-bar statis. Progres putar hanya menyalakan
+//    (highlight) bar-bar itu sesuai posisi lagu, bukan menghitung ulang
+//    frekuensinya tiap frame.
+// 4. Elemen <audio> pemutaran TIDAK lagi disambungkan ke Web Audio API graph
+//    (createMediaElementSource) dan TIDAK pakai atribut crossOrigin — ini
+//    yang sebelumnya menyebabkan audio gagal/tidak bisa diputar kalau server
+//    sumber audio tidak mengirim header CORS yang pas. Sekarang audio main
+//    lewat elemen <audio> biasa, jadi playback tidak bergantung ke CORS.
+//    Analisis waveform (fetch + decodeAudioData) tetap butuh CORS untuk bisa
+//    "melihat" isi filenya, tapi kalau itu gagal, halaman otomatis pakai pola
+//    waveform statis fallback dan audio TETAP BISA diputar seperti biasa.
+// 5. Daftar karya tidak langsung menampilkan semuanya — hanya beberapa dulu,
+//    lalu ada tombol "Tampilkan Lebih Banyak" di bawah untuk memuat sisanya.
 //
 // Data karya (judul, creator, cover, audioSrc) MASIH PLACEHOLDER, pakai lagu
 // contoh dari internet (SoundHelix, dipakai luas untuk testing audio player)
 // karena belum ada sumber audio asli dari member.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PageContainer = tw.div`-mx-8 px-8 bg-primary-900 text-gray-100 min-h-screen`;
+// Kanvas halaman ini gelap (bg-primary-900), sedangkan wrapper animasi global
+// (AnimationRevealPage) punya padding `p-8` di semua sisi. Kalau cuma
+// horizontal margin yang dibatalkan, padding-top bawaan itu menyisakan garis
+// putih di paling atas halaman (bug yang dilaporkan). Makanya di sini margin
+// atas & kiri-kanan DUA-duanya dibatalkan (`-mt-8 -mx-8`), lalu padding
+// horizontal dikembalikan (`px-8`) supaya konten tetap tidak mepet ke tepi.
+const PageContainer = tw.div`-mt-8 -mx-8 px-8 bg-primary-900 text-gray-100 min-h-screen`;
 const StyledHeader = tw(HeaderBase)`max-w-none pt-8 pb-4`;
 const LogoLink = tw(LogoLinkBase)`text-gray-100 hocus:text-gray-300`;
 const NavLink = tw(NavLinkBase)`lg:text-gray-100 lg:hocus:text-gray-300 lg:hocus:border-gray-100`;
 const PrimaryLink = tw(PrimaryLinkBase)`shadow-raised lg:bg-primary-400 lg:hocus:bg-primary-500`;
 
-const PlayerWrapper = tw.div`flex flex-col items-center text-center py-16 max-w-xl mx-auto`;
+const IntroSection = tw.div`flex flex-col items-center text-center pt-12 pb-8 max-w-xl mx-auto`;
 const Heading = tw(SectionHeading)`text-gray-100`;
 const Subheading = tw.p`mt-2 text-gray-300 text-sm max-w-md`;
 
-const AvatarRing = styled.div`
-  ${tw`mt-12 w-56 h-56 rounded-full p-2 border-4 border-primary-400`}
-`;
-const Avatar = styled.div`
-  ${props => `background-image: url("${props.imageSrc}");`}
-  ${tw`w-full h-full rounded-full bg-cover bg-center shadow-lg`}
-`;
-
-const TrackTitle = tw.h3`mt-8 text-2xl font-bold max-w-full truncate whitespace-nowrap overflow-hidden px-4`;
-const TrackCreator = tw.p`mt-1 text-primary-300 text-sm uppercase tracking-wider font-semibold`;
-
-const ControlsRow = tw.div`mt-10 flex items-center justify-center gap-8`;
-const SideButton = styled.button`
-  ${tw`text-gray-300 hocus:text-gray-100 transition duration-300 focus:outline-none`}
-`;
-const PlayButton = styled.button`
-  ${tw`w-16 h-16 rounded-full bg-primary-400 hocus:bg-primary-500 text-gray-900 flex items-center justify-center shadow-raised transition duration-300 focus:outline-none`}
-`;
-
-const BarsContainer = tw.div`mt-12 w-full h-20 flex items-end justify-center gap-1`;
-const Bar = styled.div`
-  width: 4px;
-  border-radius: 9999px;
-  background-color: ${props => (props.$active ? "#a78bfa" : "rgba(255,255,255,0.25)")};
-  height: ${props => props.$height}%;
-  transition: height 100ms ease;
-`;
-
 // ── Daftar karya member (list) ──────────────────────────────────────────────
-const ListSection = tw.div`mt-16 max-w-3xl mx-auto pb-24`;
+const ListSection = tw.div`max-w-3xl mx-auto pb-24`;
 const ListHeadingRow = tw.div`flex items-center justify-between mb-6`;
 const ListHeading = tw.h4`text-lg sm:text-xl font-bold text-gray-100`;
 const ListCount = tw.span`text-xs text-primary-300 font-semibold`;
@@ -115,7 +101,7 @@ const RowBar = styled.div`
   border-radius: 9999px;
   height: ${props => props.$height}%;
   background-color: ${props => (props.$active ? "#a78bfa" : "rgba(255,255,255,0.22)")};
-  transition: height 100ms ease, background-color 200ms ease;
+  transition: height 300ms ease, background-color 200ms ease;
 `;
 
 const RowPlayButton = styled.button`
@@ -131,11 +117,19 @@ const DropdownItem = styled.a`
   ${tw`flex items-center gap-2 px-4 py-3 text-sm hocus:bg-gray-200 transition duration-150 cursor-pointer`}
 `;
 
-const BAR_COUNT = 40;
-const ROW_BAR_COUNT = 18;
+const ShowMoreWrap = tw.div`flex justify-center mt-2`;
+const ShowMoreButton = styled.button`
+  ${tw`flex items-center gap-2 px-6 py-3 rounded-full border border-primary-400 text-primary-200 font-semibold text-sm hocus:bg-primary-700 hocus:text-gray-100 transition duration-200 focus:outline-none`}
+`;
 
-// Bikin pola waveform statis yang deterministik per karya (biar tiap baris
-// punya "bentuk" bar berbeda walau belum diputar), pakai seed sederhana.
+const ROW_BAR_COUNT = 18;
+const INITIAL_VISIBLE = 5;
+const SHOW_MORE_STEP = 5;
+
+// Bikin pola waveform statis yang deterministik per karya, dipakai sebagai
+// tampilan awal (sebelum hasil analisis frekuensi asli selesai/tersedia) atau
+// sebagai fallback kalau analisis gagal (mis. sumber audio tidak izinkan CORS
+// untuk di-fetch).
 const staticWave = (seed, count) => {
   let s = seed * 7919 + 13;
   return Array.from({ length: count }, () => {
@@ -143,6 +137,42 @@ const staticWave = (seed, count) => {
     const rnd = s / 233280;
     return 18 + rnd * 65; // rentang 18%–83%
   });
+};
+
+// Analisis frekuensi/amplitudo SEKALI di awal (bukan real-time): ambil file
+// audio, decode isinya, lalu ambil rata-rata amplitudo tiap segmen supaya
+// bisa digambar sebagai bar-bar waveform yang mewakili bentuk audio aslinya.
+const analyzeWaveform = async (url, barCount) => {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) throw new Error("Web Audio API tidak didukung");
+
+  const response = await fetch(url);
+  const arrayBuffer = await response.arrayBuffer();
+
+  const ctx = new AudioContext();
+  let audioBuffer;
+  try {
+    audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+  } finally {
+    ctx.close();
+  }
+
+  const channelData = audioBuffer.getChannelData(0);
+  const samplesPerBar = Math.max(1, Math.floor(channelData.length / barCount));
+
+  const rawHeights = Array.from({ length: barCount }, (_, i) => {
+    const start = i * samplesPerBar;
+    const end = Math.min(start + samplesPerBar, channelData.length);
+    let sum = 0;
+    for (let j = start; j < end; j++) {
+      sum += Math.abs(channelData[j]);
+    }
+    return sum / Math.max(1, end - start);
+  });
+
+  const max = Math.max(...rawHeights) || 1;
+  // Normalisasi ke rentang 14%–95% biar bar terpendek tetap kelihatan.
+  return rawHeights.map((h) => 14 + (h / max) * 81);
 };
 
 // PLACEHOLDER - ganti dengan karya asli member (judul, creator, cover, link audio)
@@ -205,29 +235,22 @@ const karyaList = [
 ];
 
 export default () => {
-  // ── Hero player (karya yang sedang aktif ditampilkan besar) ──────────────
-  const [index, setIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [barHeights, setBarHeights] = useState(Array(BAR_COUNT).fill(6));
-
-  // ── Mini player per-baris (independen dari hero) ──────────────────────────
+  // ── Mini player per-baris (satu-satunya cara putar audio sekarang) ───────
   const [activeRowPlaying, setActiveRowPlaying] = useState(null); // index atau null
-  const [rowBarHeights, setRowBarHeights] = useState(Array(ROW_BAR_COUNT).fill(6));
   const [rowProgress, setRowProgress] = useState(0); // 0..1
+
+  // ── Waveform hasil analisis frekuensi (bukan real-time) ───────────────────
+  const [waveforms, setWaveforms] = useState({}); // { [index]: number[] }
+  const analyzedRef = useRef(new Set());
 
   // ── Menu titik tiga (download) ────────────────────────────────────────────
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const menuRefs = useRef({});
 
-  const audioRef = useRef(null); // audio hero
+  // ── Daftar bertahap ("Tampilkan Lebih Banyak") ────────────────────────────
+  const [visibleCount, setVisibleCount] = useState(Math.min(INITIAL_VISIBLE, karyaList.length));
+
   const rowAudioRefs = useRef([]); // audio per baris
-
-  const audioCtxRef = useRef(null);
-  const analysersRef = useRef({}); // key: "hero" | `row-${i}` -> { analyser, source }
-  const rafRef = useRef(null);
-  const fallbackTickRef = useRef(0);
-
-  const track = karyaList[index];
 
   const logoLink = (
     <LogoLink href="/remix">
@@ -244,92 +267,33 @@ export default () => {
     </NavLinks>
   ];
 
-  // Setup Web Audio analyser untuk sebuah <audio> tertentu, dipicu oleh
-  // interaksi user (autoplay policy). Satu AudioContext dipakai bersama
-  // untuk hero maupun semua baris, tiap elemen audio dapat analyser sendiri.
-  const ensureGraph = useCallback((key, audioEl) => {
-    if (!audioEl || analysersRef.current[key] !== undefined) return;
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new AudioContext();
-      }
-      const ctx = audioCtxRef.current;
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 128;
-      const source = ctx.createMediaElementSource(audioEl);
-      source.connect(analyser);
-      analyser.connect(ctx.destination);
-      analysersRef.current[key] = { analyser, source };
-    } catch (e) {
-      // Kalau gagal (misal restriksi CORS dari sumber audio), biarkan saja —
-      // visualizer akan pakai animasi fallback di bawah.
-      analysersRef.current[key] = null;
-    }
-  }, []);
-
-  // Loop animasi tunggal — mengurus bar besar hero (kalau isPlaying) DAN bar
-  // kecil di baris yang sedang mini-play (kalau activeRowPlaying terisi).
+  // Analisis frekuensi/waveform untuk karya yang sedang tampil (lazy — cuma
+  // yang kelihatan/di-load, dan cuma sekali per karya). Kalau gagal (mis.
+  // CORS), baris itu tetap pakai pola waveform statis fallback dan audio
+  // tetap bisa diputar seperti biasa.
   useEffect(() => {
-    const animate = () => {
-      fallbackTickRef.current += 1;
-      const t = fallbackTickRef.current;
+    const cancelledRef = { current: false };
 
-      // Hero bars
-      if (isPlaying) {
-        const heroGraph = analysersRef.current.hero;
-        if (heroGraph) {
-          const data = new Uint8Array(heroGraph.analyser.frequencyBinCount);
-          heroGraph.analyser.getByteFrequencyData(data);
-          const step = Math.floor(data.length / BAR_COUNT) || 1;
-          setBarHeights(
-            Array.from({ length: BAR_COUNT }, (_, i) => {
-              const v = data[i * step] || 0;
-              return Math.max(6, (v / 255) * 100);
-            })
-          );
-        } else {
-          setBarHeights(
-            Array.from({ length: BAR_COUNT }, (_, i) =>
-              Math.max(6, 20 + 45 * Math.abs(Math.sin(t * 0.15 + i * 0.4)))
-            )
-          );
-        }
-      } else {
-        setBarHeights(Array(BAR_COUNT).fill(6));
-      }
+    Array.from({ length: visibleCount }, (_, i) => i)
+      .filter((i) => !analyzedRef.current.has(i))
+      .forEach((i) => {
+        analyzedRef.current.add(i);
 
-      // Row (mini player) bars + progress
-      if (activeRowPlaying !== null) {
-        const rowGraph = analysersRef.current[`row-${activeRowPlaying}`];
-        const rowAudio = rowAudioRefs.current[activeRowPlaying];
-        if (rowGraph) {
-          const data = new Uint8Array(rowGraph.analyser.frequencyBinCount);
-          rowGraph.analyser.getByteFrequencyData(data);
-          const step = Math.floor(data.length / ROW_BAR_COUNT) || 1;
-          setRowBarHeights(
-            Array.from({ length: ROW_BAR_COUNT }, (_, i) => {
-              const v = data[i * step] || 0;
-              return Math.max(10, (v / 255) * 100);
-            })
-          );
-        } else {
-          setRowBarHeights(
-            Array.from({ length: ROW_BAR_COUNT }, (_, i) =>
-              Math.max(10, 20 + 45 * Math.abs(Math.sin(t * 0.2 + i * 0.5)))
-            )
-          );
-        }
-        if (rowAudio && rowAudio.duration) {
-          setRowProgress(rowAudio.currentTime / rowAudio.duration);
-        }
-      }
+        analyzeWaveform(karyaList[i].audioSrc, ROW_BAR_COUNT)
+          .then((heights) => {
+            if (!cancelledRef.current) {
+              setWaveforms((prev) => ({ ...prev, [i]: heights }));
+            }
+          })
+          .catch(() => {
+            // Diamkan saja — tampilan sudah punya fallback staticWave.
+          });
+      });
 
-      rafRef.current = requestAnimationFrame(animate);
+    return () => {
+      cancelledRef.current = true;
     };
-    rafRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [isPlaying, activeRowPlaying]);
+  }, [visibleCount]);
 
   // Tutup menu titik tiga kalau klik di luar menu yang sedang terbuka
   useEffect(() => {
@@ -344,62 +308,9 @@ export default () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openMenuIndex]);
 
-  // ── Kontrol hero player ────────────────────────────────────────────────
-  const stopActiveRow = () => {
-    if (activeRowPlaying !== null) {
-      const prevAudio = rowAudioRefs.current[activeRowPlaying];
-      if (prevAudio) prevAudio.pause();
-      setActiveRowPlaying(null);
-      setRowProgress(0);
-    }
-  };
-
-  const handlePlayPause = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    stopActiveRow(); // pastikan mini player baris berhenti, hindari 2 suara
-    ensureGraph("hero", audioRef.current);
-    if (audioCtxRef.current && audioCtxRef.current.state === "suspended") {
-      audioCtxRef.current.resume();
-    }
-    if (isPlaying) {
-      audio.pause();
-      setIsPlaying(false);
-    } else {
-      audio.play().catch(() => {});
-      setIsPlaying(true);
-    }
-  };
-
-  const goTo = (newIndex) => {
-    stopActiveRow();
-    setIndex(newIndex);
-    setIsPlaying(false);
-    // Beri waktu satu tick supaya <audio src> sempat berganti sebelum diputar
-    setTimeout(() => {
-      const audio = audioRef.current;
-      if (!audio) return;
-      ensureGraph("hero", audio);
-      audio.play().then(() => setIsPlaying(true)).catch(() => {});
-    }, 50);
-  };
-
-  const handlePrev = () => goTo((index - 1 + karyaList.length) % karyaList.length);
-  const handleNext = () => goTo((index + 1) % karyaList.length);
-
-  // Klik BOX/baris lagu (di luar tombol play & menu) → tampilkan & putar di hero
-  const selectHero = (i) => {
-    if (i === index) {
-      // Sudah jadi hero, klik box lagi cukup toggle play/pause hero
-      handlePlayPause();
-      return;
-    }
-    goTo(i);
-  };
-
-  // ── Kontrol mini player per-baris (independen, tidak mengubah hero) ──────
+  // ── Kontrol mini player per-baris ─────────────────────────────────────────
   const toggleRowPlay = (i, e) => {
-    e.stopPropagation(); // supaya tidak ikut memicu selectHero (klik box)
+    if (e) e.stopPropagation(); // supaya klik tombol tidak dobel-trigger klik baris
     const rowAudio = rowAudioRefs.current[i];
     if (!rowAudio) return;
 
@@ -409,24 +320,22 @@ export default () => {
       return;
     }
 
-    // Hentikan hero kalau lagi main, dan baris lain kalau ada yang main
-    if (isPlaying) {
-      audioRef.current && audioRef.current.pause();
-      setIsPlaying(false);
-    }
+    // Hentikan baris lain kalau ada yang lagi main, biar tidak dobel suara.
     if (activeRowPlaying !== null) {
       const prevAudio = rowAudioRefs.current[activeRowPlaying];
       if (prevAudio) prevAudio.pause();
     }
 
-    ensureGraph(`row-${i}`, rowAudio);
-    if (audioCtxRef.current && audioCtxRef.current.state === "suspended") {
-      audioCtxRef.current.resume();
-    }
     setRowProgress(0);
     rowAudio.currentTime = 0;
     rowAudio.play().catch(() => {});
     setActiveRowPlaying(i);
+  };
+
+  const handleRowTimeUpdate = (i, e) => {
+    if (activeRowPlaying !== i) return;
+    const a = e.target;
+    if (a.duration) setRowProgress(a.currentTime / a.duration);
   };
 
   const handleRowEnded = (i) => {
@@ -441,87 +350,55 @@ export default () => {
     setOpenMenuIndex(openMenuIndex === i ? null : i);
   };
 
+  const handleShowMore = () => {
+    setVisibleCount((c) => Math.min(c + SHOW_MORE_STEP, karyaList.length));
+  };
+
+  const visibleKarya = karyaList.slice(0, visibleCount);
+  const hasMore = visibleCount < karyaList.length;
+
   return (
     <AnimationRevealPage>
       <PageContainer>
         <Content2Xl>
           <StyledHeader logoLink={logoLink} links={navLinks} />
 
-          <PlayerWrapper>
+          <IntroSection>
             <Heading>Dengarkan Karya</Heading>
             <Subheading>
               Kumpulan karya audio dari member Sopan Remix — hasil produksi, remix, dan mixing mereka.
             </Subheading>
-
-            <AvatarRing>
-              <Avatar imageSrc={track.imageSrc} />
-            </AvatarRing>
-
-            <TrackTitle title={track.title}>{track.title}</TrackTitle>
-            <TrackCreator>oleh {track.creator}</TrackCreator>
-
-            <ControlsRow>
-              <SideButton onClick={handlePrev} aria-label="Lagu sebelumnya">
-                <SkipBackIcon tw="w-6 h-6 fill-current" />
-              </SideButton>
-              <PlayButton onClick={handlePlayPause} aria-label={isPlaying ? "Pause" : "Play"}>
-                {isPlaying ? (
-                  <PauseIcon tw="w-6 h-6 fill-current" />
-                ) : (
-                  <PlayIcon tw="w-6 h-6 fill-current ml-1" />
-                )}
-              </PlayButton>
-              <SideButton onClick={handleNext} aria-label="Lagu berikutnya">
-                <SkipForwardIcon tw="w-6 h-6 fill-current" />
-              </SideButton>
-            </ControlsRow>
-
-            <BarsContainer>
-              {barHeights.map((h, i) => (
-                <Bar key={i} $height={h} $active={isPlaying} />
-              ))}
-            </BarsContainer>
-
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <audio
-              ref={audioRef}
-              src={track.audioSrc}
-              crossOrigin="anonymous"
-              onEnded={handleNext}
-              tw="hidden"
-            />
-          </PlayerWrapper>
+          </IntroSection>
 
           {/* ── Daftar semua karya member ──────────────────────────────── */}
           <ListSection>
             <ListHeadingRow>
               <ListHeading>Semua Karya Member</ListHeading>
-              <ListCount>{karyaList.length} karya</ListCount>
+              <ListCount>
+                {visibleKarya.length} dari {karyaList.length} karya
+              </ListCount>
             </ListHeadingRow>
 
-            {karyaList.map((item, i) => {
-              const isHeroActive = i === index;
+            {visibleKarya.map((item, i) => {
               const isRowPlaying = activeRowPlaying === i;
-              const wave = isRowPlaying ? rowBarHeights : staticWave(i, ROW_BAR_COUNT);
-              const playedCount = isRowPlaying
-                ? Math.round(rowProgress * ROW_BAR_COUNT)
-                : 0;
+              const wave = waveforms[i] || staticWave(i, ROW_BAR_COUNT);
+              const playedCount = isRowPlaying ? Math.round(rowProgress * ROW_BAR_COUNT) : 0;
 
               return (
                 <KaryaRow
                   key={i}
-                  $active={isHeroActive}
-                  onClick={() => selectHero(i)}
+                  $active={isRowPlaying}
+                  onClick={(e) => toggleRowPlay(i, e)}
                   role="button"
                   tabIndex={0}
-                  aria-label={`Putar ${item.title} di pemutar utama`}
+                  aria-label={isRowPlaying ? `Jeda ${item.title}` : `Putar ${item.title}`}
                 >
                   <RowAvatar imageSrc={item.imageSrc} />
 
                   <RowMiddle>
                     <RowTitleRow>
                       <RowTitle title={item.title}>{item.title}</RowTitle>
-                      {isHeroActive && <NowPlayingBadge>Sedang Diputar</NowPlayingBadge>}
+                      {isRowPlaying && <NowPlayingBadge>Sedang Diputar</NowPlayingBadge>}
                     </RowTitleRow>
                     <RowCreator>oleh {item.creator}</RowCreator>
 
@@ -564,17 +441,29 @@ export default () => {
                     )}
                   </RowMenuWrap>
 
+                  {/* Audio elemen biasa — TIDAK disambungkan ke Web Audio API
+                      graph dan TIDAK pakai crossOrigin, supaya playback tidak
+                      gagal walau sumber audio tidak mengirim header CORS. */}
                   {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                   <audio
                     ref={(el) => (rowAudioRefs.current[i] = el)}
                     src={item.audioSrc}
-                    crossOrigin="anonymous"
+                    onTimeUpdate={(e) => handleRowTimeUpdate(i, e)}
                     onEnded={() => handleRowEnded(i)}
                     tw="hidden"
                   />
                 </KaryaRow>
               );
             })}
+
+            {hasMore && (
+              <ShowMoreWrap>
+                <ShowMoreButton onClick={handleShowMore}>
+                  Tampilkan Lebih Banyak
+                  <ChevronDownIcon tw="w-4 h-4 fill-current" />
+                </ShowMoreButton>
+              </ShowMoreWrap>
+            )}
           </ListSection>
         </Content2Xl>
       </PageContainer>
