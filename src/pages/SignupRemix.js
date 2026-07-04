@@ -15,8 +15,10 @@ import { ReactComponent as AlertIcon } from "feather-icons/dist/icons/alert-circ
 // ─────────────────────────────────────────────────────────────────────────────
 // SIGNUP / JOIN PAGE: SOPAN REMIX
 // Basis: src/pages/Signup.js (duplikat, hanya teks & link yang diubah)
-// Field: Nama Member, Foto Profil, Video Karya, Link Sosmed, Password
+// Field: Nama Lengkap, Username Member, Foto Profil, Video Karya,
+//   Username TikTok, Username YouTube, Password, Konfirmasi Password
 // Tanpa social login provider. Ada animasi loading + custom alert saat submit.
+// Validasi: submit ditolak (alert error) kalau Password != Konfirmasi Password.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Container = tw(ContainerBase)`min-h-screen bg-primary-900 text-white font-medium flex justify-center -m-8`;
@@ -80,9 +82,22 @@ export default ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [alertInfo, setAlertInfo] = useState({ show: false, type: "success", title: "", message: "" });
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (password !== confirmPassword) {
+      setAlertInfo({
+        show: true,
+        type: "error",
+        title: "Password Tidak Cocok",
+        message: "Password dan Konfirmasi Password harus sama. Silakan periksa kembali."
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     // TODO: ganti bagian ini dengan pemanggilan Supabase (insert data + upload file)
@@ -111,7 +126,14 @@ export default ({
                 <Form onSubmit={handleSubmit}>
                   <Input
                     type="text"
-                    placeholder="Nama Member (wajib akhiran 'Sopan')"
+                    placeholder="Nama Lengkap"
+                    required
+                    disabled={isSubmitting}
+                  />
+
+                  <Input
+                    type="text"
+                    placeholder="Username Member (wajib akhiran 'Sopan')"
                     required
                     disabled={isSubmitting}
                   />
@@ -140,7 +162,13 @@ export default ({
 
                   <Input
                     type="text"
-                    placeholder="Link Sosmed (opsional)"
+                    placeholder="Username TikTok (opsional)"
+                    disabled={isSubmitting}
+                  />
+
+                  <Input
+                    type="text"
+                    placeholder="Username YouTube (opsional)"
                     disabled={isSubmitting}
                   />
 
@@ -149,6 +177,17 @@ export default ({
                     placeholder="Password"
                     required
                     disabled={isSubmitting}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+
+                  <Input
+                    type="password"
+                    placeholder="Konfirmasi Password"
+                    required
+                    disabled={isSubmitting}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                   />
 
                   <SubmitButton type="submit" disabled={isSubmitting}>
