@@ -1,4 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import tw from "twin.macro";
+import styled from "styled-components";
+import { css } from "styled-components/macro"; //eslint-disable-line
 import AnimationRevealPage from "helpers/AnimationRevealPage.js";
 import Hero from "components/hero/TwoColumnWithPrimaryBackground.js";
 import Features from "components/features/ThreeColWithSideImageWithPrimaryBackground.js";
@@ -7,6 +11,9 @@ import Testimonial from "components/testimonials/SimplePrimaryBackground.js";
 import FAQ from "components/faqs/TwoColumnPrimaryBackground.js";
 import GetStarted from "components/cta/GetStartedLight.js";
 import Footer from "components/footers/FooterRemix.js";
+import { NavLinks, NavLink as NavLinkBase, PrimaryLink as PrimaryLinkBase } from "components/headers/light.js";
+import { getSession, clearSession } from "helpers/session.js";
+import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.svg";
 import serverillustration2ImageSrc from "images/server-illustration-2.svg"
 import serverSecureIllustrationImageSrc from "images/server-secure-illustration.svg"
 import SupportIconImage from "images/support-icon.svg";
@@ -28,7 +35,75 @@ import SimpleIconImage from "images/simple-icon.svg";
 //   karya member (/remix/karya).
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// NAVBAR LOGIN-AWARE — sama logic-nya kayak pages/Absensi.js: kalau user
+// sudah login, Login & Join Sekarang di-hide, muncul foto profil (avatar
+// bulat, fallback inisial), nama, dan tombol Logout. Warna teks nav di sini
+// disamakan sama styling yang dipakai Hero aslinya (putih di atas bg ungu).
+// ─────────────────────────────────────────────────────────────────────────────
+const NavLink = tw(NavLinkBase)`lg:text-gray-100 lg:hocus:text-gray-300 lg:hocus:border-gray-100`;
+const PrimaryLink = tw(PrimaryLinkBase)`shadow-raised lg:bg-primary-400 lg:hocus:bg-primary-500`;
+
+const ProfileAvatarLink = tw(Link)`flex items-center lg:ml-12! border-b-0`;
+const AvatarCircle = tw.div`w-10 h-10 rounded-full overflow-hidden bg-primary-400 flex items-center justify-center flex-shrink-0`;
+const AvatarImg = tw.img`w-full h-full object-cover`;
+const AvatarInitial = tw.span`text-gray-100 text-sm font-bold select-none`;
+const MemberNameNavSpan = tw.span`
+  flex items-center text-lg my-2 lg:text-sm lg:mx-6 lg:my-0 font-semibold tracking-wide text-gray-100
+`;
+const LogoutNavButton = styled.button`
+  ${tw`flex items-center text-sm lg:mx-6 my-2 lg:my-0 font-semibold tracking-wide transition duration-300 px-4 py-2 rounded-full bg-red-100 text-red-400 hover:bg-red-200 hover:text-red-500 focus:outline-none`}
+`;
+
 export default () => {
+  // Member yang lagi login, diambil dari localStorage (diisi pas login lewat
+  // LoginRemix.js). null kalau belum login sama sekali. Logic-nya sama
+  // persis kayak pages/Absensi.js.
+  const [currentMember, setCurrentMember] = useState(() => getSession());
+  const [avatarError, setAvatarError] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    clearSession();
+    setCurrentMember(null);
+    navigate("/remix");
+  };
+
+  // Navbar khusus halaman ini: Home & Member selalu tampil. Login & Join
+  // Sekarang di-hide kalau sudah login, digantikan Avatar + Nama + Logout.
+  const navLinks = [
+    <NavLinks key={1}>
+      <NavLink href="/remix">Home</NavLink>
+      <NavLink href="/remix/members">Member</NavLink>
+
+      {!currentMember && <NavLink href="/remix/login">Login</NavLink>}
+      {!currentMember && <PrimaryLink href="/remix/join">Join Sekarang</PrimaryLink>}
+
+      {currentMember && (
+        <ProfileAvatarLink to={`/remix/members/${currentMember.id}`} title={currentMember.username}>
+          <AvatarCircle>
+            {currentMember.profilePic && !avatarError ? (
+              <AvatarImg
+                src={currentMember.profilePic}
+                alt={currentMember.username}
+                onError={() => setAvatarError(true)}
+              />
+            ) : (
+              <AvatarInitial>{currentMember.username.trim().charAt(0).toUpperCase()}</AvatarInitial>
+            )}
+          </AvatarCircle>
+        </ProfileAvatarLink>
+      )}
+      {currentMember && <MemberNameNavSpan>{currentMember.username}</MemberNameNavSpan>}
+      {currentMember && (
+        <LogoutNavButton type="button" onClick={handleLogout}>
+          <LogOutIcon tw="w-4 h-4 mr-2" />
+          Logout
+        </LogoutNavButton>
+      )}
+    </NavLinks>,
+  ];
+
   return (
     <AnimationRevealPage>
 
@@ -38,6 +113,7 @@ export default () => {
         description="Divisi musik dari Sopan Team, tempat berkumpulnya para kreator audio: producer, mixing engineer, dan sound engineer yang berkarya bersama di dunia digital."
         primaryButtonText="Join Sekarang"
         primaryButtonUrl="/remix/join"
+        links={navLinks}
       />
 
       {/* ── FEATURES ── diedit via props di file demo ini */}
