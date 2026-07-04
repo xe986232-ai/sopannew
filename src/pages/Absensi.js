@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import ReactDOM from "react-dom";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import tw from "twin.macro";
 import styled from "styled-components";
 import { css } from "styled-components/macro"; //eslint-disable-line
@@ -13,22 +13,28 @@ import HeaderBase, { NavLinks, NavLink as HeaderNavLink, PrimaryLink } from "com
 import { ReactComponent as CheckCircleIcon } from "images/checkbox-circle.svg";
 import { ReactComponent as AlertIcon } from "feather-icons/dist/icons/alert-circle.svg";
 import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.svg";
+import { ReactComponent as LockIcon } from "feather-icons/dist/icons/lock.svg";
 import { getSession, clearSession } from "helpers/session.js";
-import { useAbsensiSessions, useAbsensiRecords, pickCurrentSession, markAttendance } from "helpers/useAbsensi.js";
+import { useAbsensiSessions, useAbsensiRecords, findSessionByToken, markAttendance } from "helpers/useAbsensi.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HALAMAN ABSENSI — SOPAN TEAM (/absensi)
+// HALAMAN ABSENSI — SOPAN TEAM (/absensi/:token)
 // Style dasar mengikuti demos/HostingCloudLandingPage.js: hero primary
 // background + section konten di bawahnya dengan Container/ContentWithPaddingXl.
 //
 // SUDAH TERHUBUNG KE FIREBASE REALTIME DATABASE (bukan lagi state lokal):
-//   absensi/sessions/{sessionId}           -> { title, openAt, closeAt, createdAt }
+//   absensi/sessions/{sessionId}           -> { title, openAt, closeAt, createdAt, token }
 //   absensi/records/{sessionId}/{memberId} -> { name, timestamp }
 //
+// AKSES DIBATASI LEWAT TOKEN DI URL: halaman ini TIDAK bisa dibuka langsung
+// via "/absensi" biasa. Wajib lewat link "/absensi/{token}" yang di-generate
+// otomatis pas admin klik "Create Absensi" di pages/AbsensiAdmin.js (link itu
+// yang di-share admin ke member). Kalau token kosong/tidak cocok sama sesi
+// manapun, halaman ini nolak akses (bukan nampilin sesi manapun by default).
+//
 // Sesi absensi (tanggal mulai/tutup) dibuat oleh admin lewat halaman
-// pages/AbsensiAdmin.js (/absensi/admin) — halaman ini HANYA membaca sesi
-// yang lagi relevan (pakai pickCurrentSession) dan menulis record kehadiran,
-// tidak ada lagi tanggal hardcode di sini.
+// pages/AbsensiAdmin.js — halaman ini HANYA membaca sesi yang token-nya cocok
+// dengan URL, tidak ada lagi tanggal hardcode ataupun auto-pick sesi "aktif".
 //
 // TIDAK ADA input nama manual. Nama diambil otomatis dari akun member yang
 // lagi login (helpers/session.js, diisi oleh proses login di LoginRemix.js).
@@ -98,7 +104,14 @@ const LogoutNavButton = styled.button`
   ${tw`flex items-center text-sm lg:mx-6 my-2 lg:my-0 font-semibold tracking-wide transition duration-300 px-4 py-2 rounded-full bg-red-100 text-red-400 hover:bg-red-200 hover:text-red-500 focus:outline-none`}
 `;
 
-// Menentukan status window absensi berdasarkan waktu "now" vs sesi yang aktif.
+// ── Tampilan kalau link diakses tanpa token / token tidak valid ──
+const DeniedWrap = tw.div`min-h-screen flex items-center justify-center px-4`;
+const DeniedCard = tw.div`text-center max-w-sm mx-auto`;
+const DeniedIconWrapper = tw.div`w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center`;
+const DeniedTitle = tw.h3`text-xl font-bold text-gray-900 mb-2`;
+const DeniedText = tw.p`text-sm text-gray-600`;
+
+// Menentukan status window absensi berdasarkan waktu "now" vs sesi yang ditemukan dari token.
 function getAbsensiStatus(session, now) {
   if (!session) return "no-session";
   if (now < session.openAt) return "not-started";
@@ -130,6 +143,10 @@ function formatFullDate(timestamp) {
 }
 
 export default () => {
+  // Token WAJIB ada di URL ("/absensi/:token") — inilah satu-satunya cara
+  // halaman ini boleh diakses. Tanpa token yang cocok, akses ditolak.
+  const { token } = useParams();
+
   // Semua sesi absensi yang pernah dibuat admin (realtime dari Firebase).
   const { sessions, loading: sessionsLoading } = useAbsensiSessions();
   const [alertInfo, setAlertInfo] = useState({ show: false, type: "success", title: "", message: "" });
@@ -147,9 +164,9 @@ export default () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Sesi yang relevan ditampilkan sekarang (yang sedang open, atau upcoming
-  // terdekat, atau yang paling terakhir ditutup kalau semua sudah lewat).
-  const currentSession = useMemo(() => pickCurrentSession(sessions, now), [sessions, now]);
+  // Sesi yang cocok dengan token di URL. null kalau token kosong/tidak valid
+  // — dan HANYA dalam kasus itu (bukan auto-pick sesi manapun).
+  const currentSession = useMemo(() => findSessionByToken(sessions, token), [sessions, token]);
 
   // Rekap kehadiran REALTIME untuk sesi tersebut, langsung dari Firebase.
   const { records: attendeeRecords } = useAbsensiRecords(currentSession?.id);
@@ -302,6 +319,28 @@ export default () => {
       setIsSubmitting(false);
     }
   };
+
+  // ── Guard akses: WAJIB via link token yang valid ──
+  // Tunggu sessions selesai di-load dulu sebelum memutuskan "ditolak", biar
+  // gak sempat kelip nampilin akses ditolak pas Firebase masih fetch data.
+  if (!sessionsLoading && !currentSession) {
+    return (
+      <AnimationRevealPage>
+        <DeniedWrap>
+          <DeniedCard>
+            <DeniedIconWrapper>
+              <LockIcon tw="w-8 h-8 text-gray-500" />
+            </DeniedIconWrapper>
+            <DeniedTitle>Link Tidak Valid</DeniedTitle>
+            <DeniedText>
+              Halaman absensi cuma bisa diakses lewat link resmi yang di-share admin.
+              Minta link absensi terbaru ke admin Sopan Team ya.
+            </DeniedText>
+          </DeniedCard>
+        </DeniedWrap>
+      </AnimationRevealPage>
+    );
+  }
 
   return (
     <AnimationRevealPage>
