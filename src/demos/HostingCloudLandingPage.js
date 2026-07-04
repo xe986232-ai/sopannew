@@ -1,6 +1,7 @@
 import React from "react";
 import AnimationRevealPage from "helpers/AnimationRevealPage.js";
 import Hero from "components/hero/TwoColumnWithPrimaryBackground.js";
+import CommunityStrip from "components/misc/CommunityStrip.js";
 import Features from "components/features/ThreeColWithSideImageWithPrimaryBackground.js";
 import MainFeature from "components/features/TwoColWithButton.js";
 import Testimonial from "components/testimonials/SimplePrimaryBackground.js";
@@ -19,13 +20,13 @@ import SimpleIconImage from "images/simple-icon.svg";
 // ─────────────────────────────────────────────────────────────────────────────
 // LANDING PAGE: SOPAN REMIX
 // Demo basis: HostingCloudLandingPage.js
-// Urutan section dasarnya TIDAK berubah dari aslinya: Hero → Features →
-//   Pricing → MainFeature × 2 → Testimonial → FAQ → Footer
-// Tambahan: 1 section CTA ("Dengarkan Karya", pakai GetStartedLight yang
-//   sudah ada di template) disisipkan setelah MainFeature 2, sebelum
-//   Testimonial — jadi alurnya: ...MainFeature 2 → CTA Dengarkan Karya →
-//   Testimonial → FAQ → Footer. Tombol utamanya mengarah ke halaman daftar
-//   karya member (/remix/karya).
+// Update tampilan: Hero sekarang punya identitas visual "komunitas remix"
+//   (vinyl berputar + equalizer animasi, role badges, tombol sekunder
+//   "Dengarkan Karya"), dibangun mobile-first. Ditambah section
+//   CommunityStrip tepat di bawah Hero (genre tags + follow TikTok/YouTube).
+// Urutan section: Hero → CommunityStrip → Features → MainFeature × 2 →
+//   CTA Dengarkan Karya → Testimonial → FAQ → Footer. Tombol utama hero
+//   mengarah ke /remix/join, tombol sekunder ke /remix/karya.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default () => {
@@ -39,6 +40,9 @@ export default () => {
         primaryButtonText="Join Sekarang"
         primaryButtonUrl="/remix/join"
       />
+
+      {/* ── COMMUNITY STRIP ── genre tags + follow TikTok/YouTube, langsung di bawah Hero */}
+      <CommunityStrip />
 
       {/* ── FEATURES ── diedit via props di file demo ini */}
       <Features
