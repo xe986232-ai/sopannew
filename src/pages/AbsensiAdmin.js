@@ -4,7 +4,7 @@ import tw from "twin.macro";
 import styled from "styled-components";
 import { css } from "styled-components/macro"; //eslint-disable-line
 import AnimationRevealPage from "helpers/AnimationRevealPage.js";
-import { Container, ContentWithPaddingXl } from "components/misc/Layouts.js";
+import { Container, ContentWithPaddingXl as ContentWithPaddingXlBase } from "components/misc/Layouts.js";
 import { SectionHeading, Subheading as SubheadingBase } from "components/misc/Headings.js";
 import { PrimaryButton as PrimaryButtonBase } from "components/misc/Buttons.js";
 import HeaderBase, { NavLinks, NavLink as HeaderNavLink } from "components/headers/light.js";
@@ -64,6 +64,14 @@ import autoTable from "jspdf-autotable";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const StyledHeader = tw(HeaderBase)`max-w-none py-4`;
+
+// Halaman default (ContentWithPaddingXl) di-cap "max-w-screen-xl mx-auto",
+// jadi kontennya nempel di tengah dan nyisain ruang kosong gede di kanan-kiri
+// layar. Untuk dashboard admin ini kita mau isi penuh lebar layar (bukan
+// cuma ambil tengah), jadi kita override max-width-nya di sini saja —
+// halaman lain yang masih pakai ContentWithPaddingXl versi asli tidak
+// terpengaruh sama sekali.
+const ContentWithPaddingXl = tw(ContentWithPaddingXlBase)`max-w-full py-10 lg:py-12 px-4 sm:px-6 lg:px-10 xl:px-16`;
 
 const HeadingRow = tw.div`flex flex-wrap items-center justify-between gap-4 mb-10`;
 const PageHeading = tw(SectionHeading)`text-left text-3xl!`;
@@ -146,8 +154,8 @@ const MemberListTitle = tw.h5`text-sm font-bold uppercase tracking-wide text-gra
 const MemberCount = tw.span`text-xs text-gray-400 flex-shrink-0`;
 
 const MemberListWrap = tw.div`bg-white rounded-lg shadow-sm divide-y divide-gray-100 overflow-hidden`;
-const MemberRow = tw.div`flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-100 transition duration-150`;
-const MemberLeft = tw.div`flex items-center gap-3 min-w-0`;
+const MemberRow = tw.div`flex items-center justify-between gap-4 px-4 sm:px-5 py-3 sm:py-4 hover:bg-gray-100 transition duration-150`;
+const MemberLeft = tw.div`flex items-center gap-3 min-w-0 flex-1`;
 
 const MemberAvatarImg = styled.img`
   ${tw`border border-gray-200 flex-shrink-0`}
@@ -158,7 +166,7 @@ const MemberAvatarImg = styled.img`
 `;
 const MemberAvatarFallback = tw.div`w-10 h-10 rounded-full bg-primary-500 text-gray-100 flex items-center justify-center font-bold flex-shrink-0 text-sm`;
 
-const MemberInfo = tw.div`min-w-0`;
+const MemberInfo = tw.div`min-w-0 flex-1`;
 const MemberName = tw.p`font-semibold text-sm text-gray-900 truncate`;
 const MemberPosition = tw.p`text-xs text-gray-500 truncate`;
 
@@ -180,7 +188,7 @@ const MemberCountPill = tw.span`inline-block flex-shrink-0 text-xs font-bold px-
 const SecurityWarningBox = tw.div`flex items-start gap-2 bg-red-100 text-red-500 rounded-lg px-4 py-3 mb-4 text-xs leading-relaxed`;
 
 const MemberRowButton = styled.button`
-  ${tw`w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-100 transition duration-150 text-left focus:outline-none`}
+  ${tw`w-full flex items-center justify-between gap-4 px-4 sm:px-5 py-3 sm:py-4 hover:bg-gray-100 transition duration-150 text-left focus:outline-none`}
 `;
 const PasswordInlineWrap = tw.div`flex items-center gap-1 mt-1`;
 const PasswordText = tw.span`font-mono text-xs text-red-500 bg-red-100 px-2 py-1 rounded truncate`;
