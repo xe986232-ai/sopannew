@@ -163,8 +163,17 @@ const MemberName = tw.p`font-semibold text-sm text-gray-900 truncate`;
 const MemberPosition = tw.p`text-xs text-gray-500 truncate`;
 
 const MemberRight = tw.div`flex items-center gap-2 flex-shrink-0`;
-const AttendedBadge = tw.span`text-xs font-bold text-green-600 bg-green-100 px-3 py-1 rounded-full whitespace-nowrap`;
-const NotAttendedBadge = tw.span`text-xs font-bold text-gray-500 bg-gray-200 px-3 py-1 rounded-full whitespace-nowrap`;
+// Sengaja diganti dari badge teks ("Sudah Absen" / "Belum Absen", lebar
+// ~90-110px) jadi ikon bulat kecil (24px) — jauh lebih hemat tempat di
+// baris member, biar nama member tidak ikut kesempit/ketutupan. Statusnya
+// tetap jelas lewat warna + ikon centang, dan ada `title` (tooltip) buat
+// yang mau lihat teksnya.
+const AttendanceIndicator = styled.span`
+  ${tw`inline-flex items-center justify-center flex-shrink-0 rounded-full`}
+  width: 1.5rem;
+  height: 1.5rem;
+  ${(props) => (props.attended ? tw`bg-green-100 text-green-600` : tw`bg-gray-200 text-gray-400`)}
+`;
 const AttendedTime = tw.span`hidden sm:inline text-xs text-gray-400 whitespace-nowrap`;
 
 const EmptyDetailState = tw.div`bg-gray-100 rounded-lg p-8 text-center text-gray-500 text-sm`;
@@ -533,10 +542,12 @@ function SessionAccordionItem({
                               minute: "2-digit",
                             })}
                           </AttendedTime>
-                          <AttendedBadge>Sudah Absen</AttendedBadge>
+                          <AttendanceIndicator attended title="Sudah Absen">
+                            <CheckIcon tw="w-3 h-3" />
+                          </AttendanceIndicator>
                         </>
                       ) : (
-                        <NotAttendedBadge>Belum Absen</NotAttendedBadge>
+                        <AttendanceIndicator title="Belum Absen" />
                       )}
                     </MemberRight>
                   </MemberRow>
