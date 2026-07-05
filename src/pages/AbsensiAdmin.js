@@ -65,13 +65,18 @@ import autoTable from "jspdf-autotable";
 
 const StyledHeader = tw(HeaderBase)`max-w-none py-4`;
 
-// Halaman default (ContentWithPaddingXl) di-cap "max-w-screen-xl mx-auto",
-// jadi kontennya nempel di tengah dan nyisain ruang kosong gede di kanan-kiri
-// layar. Untuk dashboard admin ini kita mau isi penuh lebar layar (bukan
-// cuma ambil tengah), jadi kita override max-width-nya di sini saja —
-// halaman lain yang masih pakai ContentWithPaddingXl versi asli tidak
-// terpengaruh sama sekali.
-const ContentWithPaddingXl = tw(ContentWithPaddingXlBase)`max-w-full py-10 lg:py-12 px-4 sm:px-6 lg:px-10 xl:px-16`;
+// AnimationRevealPage (helpers/AnimationRevealPage.js) membungkus SEMUA
+// halaman di app ini dengan `p-8` (32px) di keempat sisi — itu sumber ruang
+// kosong di kiri-kanan yang masih kelihatan. Kita batalkan cuma untuk
+// halaman ini pakai `-mx-8`, lalu kasih padding sendiri yang lebih tipis di
+// HP (px-4 = 16px) dan makin lega di layar besar. Halaman lain yang masih
+// pakai AnimationRevealPage apa adanya tidak kepengaruh sama sekali.
+const PageEdgeToEdge = tw.div`-mx-8`;
+
+// max-w-screen-xl bawaan ContentWithPaddingXl juga dibuang (full width),
+// dan padding horizontal dibikin ringan di mobile biar konten kebagian
+// ruang lebih lebar (bukan tambah sempit).
+const ContentWithPaddingXl = tw(ContentWithPaddingXlBase)`max-w-full py-8 lg:py-12 px-4 sm:px-6 lg:px-10 xl:px-16`;
 
 const HeadingRow = tw.div`flex flex-wrap items-center justify-between gap-4 mb-10`;
 const PageHeading = tw(SectionHeading)`text-left text-3xl!`;
@@ -124,7 +129,7 @@ const AccordionBodyOuter = styled.div`
   grid-template-rows: ${(props) => (props.open ? "1fr" : "0fr")};
 `;
 const AccordionBodyInner = tw.div`overflow-hidden`;
-const AccordionBodyContent = tw.div`px-5 pb-5 pt-4 border-t border-gray-300 border-opacity-50`;
+const AccordionBodyContent = tw.div`px-3 sm:px-5 pb-5 pt-4 border-t border-gray-300 border-opacity-50`;
 
 const StatsRow = tw.div`grid grid-cols-3 gap-3 sm:gap-4 mb-6`;
 const StatBox = tw.div`bg-white rounded-lg p-3 sm:p-4 text-center shadow`;
@@ -154,8 +159,11 @@ const MemberListTitle = tw.h5`text-sm font-bold uppercase tracking-wide text-gra
 const MemberCount = tw.span`text-xs text-gray-400 flex-shrink-0`;
 
 const MemberListWrap = tw.div`bg-white rounded-lg shadow-sm divide-y divide-gray-100 overflow-hidden`;
-const MemberRow = tw.div`flex items-center justify-between gap-4 px-4 sm:px-5 py-3 sm:py-4 hover:bg-gray-100 transition duration-150`;
-const MemberLeft = tw.div`flex items-center gap-3 min-w-0 flex-1`;
+// Di HP: nama & badge status ditumpuk (flex-col) biar nama dapat lebar
+// penuh dan TIDAK pernah kepotong/truncate. Mulai `sm:` ke atas baru
+// disejajarkan satu baris kayak biasa.
+const MemberRow = tw.div`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 px-3 sm:px-5 py-3 hover:bg-gray-100 transition duration-150`;
+const MemberLeft = tw.div`flex items-center gap-3 min-w-0 w-full sm:flex-1`;
 
 const MemberAvatarImg = styled.img`
   ${tw`border border-gray-200 flex-shrink-0`}
@@ -167,7 +175,10 @@ const MemberAvatarImg = styled.img`
 const MemberAvatarFallback = tw.div`w-10 h-10 rounded-full bg-primary-500 text-gray-100 flex items-center justify-center font-bold flex-shrink-0 text-sm`;
 
 const MemberInfo = tw.div`min-w-0 flex-1`;
-const MemberName = tw.p`font-semibold text-sm text-gray-900 truncate`;
+// Sengaja TANPA `truncate` — nama harus selalu tampil penuh sesuai
+// permintaan, biar wrap ke baris baru kalau memang kepanjangan (bukan
+// dipotong "...").
+const MemberName = tw.p`font-semibold text-sm text-gray-900 break-words`;
 const MemberPosition = tw.p`text-xs text-gray-500 truncate`;
 
 const MemberRight = tw.div`flex items-center gap-2 flex-shrink-0`;
@@ -188,7 +199,7 @@ const MemberCountPill = tw.span`inline-block flex-shrink-0 text-xs font-bold px-
 const SecurityWarningBox = tw.div`flex items-start gap-2 bg-red-100 text-red-500 rounded-lg px-4 py-3 mb-4 text-xs leading-relaxed`;
 
 const MemberRowButton = styled.button`
-  ${tw`w-full flex items-center justify-between gap-4 px-4 sm:px-5 py-3 sm:py-4 hover:bg-gray-100 transition duration-150 text-left focus:outline-none`}
+  ${tw`w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 px-3 sm:px-5 py-3 hover:bg-gray-100 transition duration-150 text-left focus:outline-none`}
 `;
 const PasswordInlineWrap = tw.div`flex items-center gap-1 mt-1`;
 const PasswordText = tw.span`font-mono text-xs text-red-500 bg-red-100 px-2 py-1 rounded truncate`;
@@ -685,20 +696,22 @@ export default () => {
   if (!currentMember || currentMember.role !== "admin") {
     return (
       <AnimationRevealPage>
-        <Container>
-          <StyledHeader links={navLinks} />
-        </Container>
-        <AccessDeniedWrap>
-          <AccessDeniedCard>
-            <AccessDeniedTitle>Akses Ditolak</AccessDeniedTitle>
-            <AccessDeniedText>
-              Halaman ini cuma buat admin. {currentMember ? "Akun kamu belum punya akses admin." : "Login dulu pakai akun admin."}
-            </AccessDeniedText>
-            <PrimaryButtonBase as={Link} to="/remix/login">
-              {currentMember ? "Kembali ke Home" : "Login"}
-            </PrimaryButtonBase>
-          </AccessDeniedCard>
-        </AccessDeniedWrap>
+        <PageEdgeToEdge>
+          <Container>
+            <StyledHeader links={navLinks} />
+          </Container>
+          <AccessDeniedWrap>
+            <AccessDeniedCard>
+              <AccessDeniedTitle>Akses Ditolak</AccessDeniedTitle>
+              <AccessDeniedText>
+                Halaman ini cuma buat admin. {currentMember ? "Akun kamu belum punya akses admin." : "Login dulu pakai akun admin."}
+              </AccessDeniedText>
+              <PrimaryButtonBase as={Link} to="/remix/login">
+                {currentMember ? "Kembali ke Home" : "Login"}
+              </PrimaryButtonBase>
+            </AccessDeniedCard>
+          </AccessDeniedWrap>
+        </PageEdgeToEdge>
       </AnimationRevealPage>
     );
   }
@@ -706,6 +719,7 @@ export default () => {
   return (
     <>
     <AnimationRevealPage>
+      <PageEdgeToEdge>
       <Container>
         <StyledHeader links={navLinks} />
 
@@ -849,6 +863,7 @@ export default () => {
           </AccordionCard>
         </ContentWithPaddingXl>
       </Container>
+      </PageEdgeToEdge>
     </AnimationRevealPage>
 
       {/* ── MODAL: Create Absensi ──
