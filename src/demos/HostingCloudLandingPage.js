@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import tw from "twin.macro";
 import styled from "styled-components";
@@ -14,6 +14,8 @@ import Footer from "components/footers/FooterRemix.js";
 import { NavLinks, NavLink as NavLinkBase, PrimaryLink as PrimaryLinkBase } from "components/headers/light.js";
 import { getSession, clearSession } from "helpers/session.js";
 import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.svg";
+import { ReactComponent as ChevronDownIcon } from "feather-icons/dist/icons/chevron-down.svg";
+import { ReactComponent as Edit2Icon } from "feather-icons/dist/icons/edit-2.svg";
 import logoImageSrc from "images/logo-sopan.png";
 import composeMusicIllustrationSrc from "images/Compose music-bro.svg";
 import playingMusicIllustrationSrc from "images/Playing Music-bro.svg";
@@ -45,15 +47,37 @@ import SimpleIconImage from "images/simple-icon.svg";
 const NavLink = tw(NavLinkBase)`lg:text-gray-100 lg:hocus:text-gray-300 lg:hocus:border-gray-100`;
 const PrimaryLink = tw(PrimaryLinkBase)`shadow-raised lg:bg-primary-400 lg:hocus:bg-primary-500`;
 
-const ProfileAvatarLink = tw(Link)`flex items-center lg:ml-12! border-b-0`;
+// ─────────────────────────────────────────────────────────────────────────────
+// NAVBAR LOGIN-AWARE — kalau user sudah login, Login & Join Sekarang di-hide,
+// diganti 1 tombol "Profil" (avatar + nama + chevron) yang kalau diklik
+// buka dropdown berisi "Edit Profil" (ke halaman baru /remix/profile) dan
+// "Logout". Logout TIDAK lagi nongol lepas di navbar — harus buka dropdown
+// dulu, sesuai permintaan.
+// ─────────────────────────────────────────────────────────────────────────────
+const ProfileMenuWrap = tw.div`relative flex items-center lg:ml-12! my-2 lg:my-0`;
+const ProfileTrigger = styled.button`
+  ${tw`flex items-center gap-2 focus:outline-none`}
+`;
 const AvatarCircle = tw.div`w-10 h-10 rounded-full overflow-hidden bg-primary-400 flex items-center justify-center flex-shrink-0`;
 const AvatarImg = tw.img`w-full h-full object-cover`;
 const AvatarInitial = tw.span`text-gray-100 text-sm font-bold select-none`;
 const MemberNameNavSpan = tw.span`
-  flex items-center text-lg my-2 lg:text-sm lg:mx-6 lg:my-0 font-semibold tracking-wide text-primary-500
+  flex items-center text-lg lg:text-sm font-semibold tracking-wide text-primary-500
 `;
-const LogoutNavButton = styled.button`
-  ${tw`flex items-center text-sm lg:mx-6 my-2 lg:my-0 font-semibold tracking-wide transition duration-300 px-4 py-2 rounded-full bg-red-100 text-red-400 hover:bg-red-200 hover:text-red-500 focus:outline-none`}
+const ProfileChevron = styled.div`
+  ${tw`text-gray-100 flex-shrink-0 transition-transform duration-200`}
+  ${(props) => props.open && tw`transform rotate-180`}
+`;
+
+const ProfileDropdown = styled.div`
+  ${tw`absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 text-left`}
+  top: 100%;
+`;
+const ProfileDropdownLink = styled(Link)`
+  ${tw`flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition duration-150 border-b-0!`}
+`;
+const ProfileDropdownButton = styled.button`
+  ${tw`w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-100 transition duration-150 focus:outline-none`}
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -80,16 +104,33 @@ export default () => {
   // persis kayak pages/Absensi.js.
   const [currentMember, setCurrentMember] = useState(() => getSession());
   const [avatarError, setAvatarError] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    setProfileMenuOpen(false);
     clearSession();
     setCurrentMember(null);
     navigate("/remix");
   };
 
+  // Tutup dropdown kalau klik di luar area tombol profil.
+  useEffect(() => {
+    if (!profileMenuOpen) return undefined;
+    const handleClickOutside = (e) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [profileMenuOpen]);
+
   // Navbar khusus halaman ini: Home & Member selalu tampil. Login & Join
-  // Sekarang di-hide kalau sudah login, digantikan Avatar + Nama + Logout.
+  // Sekarang di-hide kalau sudah login, digantikan 1 tombol Profil yang
+  // membuka dropdown (Edit Profil / Logout) — Logout tidak lagi lepas di
+  // navbar, harus lewat dropdown ini dulu.
   const navLinks = [
     <NavLinks key={1}>
       <NavLink href="/remix">Home</NavLink>
@@ -99,26 +140,43 @@ export default () => {
       {!currentMember && <PrimaryLink href="/remix/join">Join Sekarang</PrimaryLink>}
 
       {currentMember && (
-        <ProfileAvatarLink to={`/remix/members/${currentMember.id}`} title={currentMember.username}>
-          <AvatarCircle>
-            {currentMember.profilePic && !avatarError ? (
-              <AvatarImg
-                src={currentMember.profilePic}
-                alt={currentMember.username}
-                onError={() => setAvatarError(true)}
-              />
-            ) : (
-              <AvatarInitial>{currentMember.username.trim().charAt(0).toUpperCase()}</AvatarInitial>
-            )}
-          </AvatarCircle>
-        </ProfileAvatarLink>
-      )}
-      {currentMember && <MemberNameNavSpan>{currentMember.username}</MemberNameNavSpan>}
-      {currentMember && (
-        <LogoutNavButton type="button" onClick={handleLogout}>
-          <LogOutIcon tw="w-4 h-4 mr-2" />
-          Logout
-        </LogoutNavButton>
+        <ProfileMenuWrap ref={profileMenuRef}>
+          <ProfileTrigger
+            type="button"
+            onClick={() => setProfileMenuOpen((prev) => !prev)}
+            aria-expanded={profileMenuOpen}
+            aria-haspopup="true"
+          >
+            <AvatarCircle>
+              {currentMember.profilePic && !avatarError ? (
+                <AvatarImg
+                  src={currentMember.profilePic}
+                  alt={currentMember.username}
+                  onError={() => setAvatarError(true)}
+                />
+              ) : (
+                <AvatarInitial>{currentMember.username.trim().charAt(0).toUpperCase()}</AvatarInitial>
+              )}
+            </AvatarCircle>
+            <MemberNameNavSpan>{currentMember.username}</MemberNameNavSpan>
+            <ProfileChevron open={profileMenuOpen}>
+              <ChevronDownIcon tw="w-4 h-4" />
+            </ProfileChevron>
+          </ProfileTrigger>
+
+          {profileMenuOpen && (
+            <ProfileDropdown>
+              <ProfileDropdownLink to="/remix/profile" onClick={() => setProfileMenuOpen(false)}>
+                <Edit2Icon tw="w-4 h-4" />
+                Edit Profil
+              </ProfileDropdownLink>
+              <ProfileDropdownButton type="button" onClick={handleLogout}>
+                <LogOutIcon tw="w-4 h-4" />
+                Logout
+              </ProfileDropdownButton>
+            </ProfileDropdown>
+          )}
+        </ProfileMenuWrap>
       )}
     </NavLinks>,
   ];
