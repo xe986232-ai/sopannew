@@ -14,6 +14,7 @@ import Footer from "components/footers/FooterRemix.js";
 import { NavLinks, NavLink as NavLinkBase, PrimaryLink as PrimaryLinkBase } from "components/headers/light.js";
 import { getSession, clearSession } from "helpers/session.js";
 import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.svg";
+import logoImageSrc from "images/logo-sopan.png";
 import serverillustration2ImageSrc from "images/server-illustration-2.svg"
 import serverSecureIllustrationImageSrc from "images/server-secure-illustration.svg"
 import SupportIconImage from "images/support-icon.svg";
@@ -54,6 +55,24 @@ const MemberNameNavSpan = tw.span`
 const LogoutNavButton = styled.button`
   ${tw`flex items-center text-sm lg:mx-6 my-2 lg:my-0 font-semibold tracking-wide transition duration-300 px-4 py-2 rounded-full bg-red-100 text-red-400 hover:bg-red-200 hover:text-red-500 focus:outline-none`}
 `;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PEMISAH HERO ↔ FEATURES — Hero ("Sopan Remix — Komunitas Musik Digital") dan
+// Features ("Apa yang Kami Lakukan") sama-sama pakai bg-primary-900, jadi
+// nyambung tanpa batas. Pemisah ini kasih jeda visual: garis gradient tipis +
+// badge bulat berisi logo Sopan (asset yang sudah ada di repo), biar dua
+// section itu kebaca sebagai dua blok yang beda, bukan satu blok panjang.
+// ─────────────────────────────────────────────────────────────────────────────
+const HeroFeaturesDivider = tw.div`relative bg-primary-900 -mx-8 px-8`;
+const DividerInner = tw.div`relative flex items-center justify-center max-w-screen-lg mx-auto py-2`;
+const DividerLine = styled.div`
+  ${tw`absolute inset-x-0 top-1/2 h-px transform -translate-y-1/2`}
+  background: linear-gradient(to right, transparent, rgba(247, 250, 252, 0.35) 50%, transparent);
+`;
+const DividerBadge = styled.div`
+  ${tw`relative z-10 w-16 h-16 rounded-full bg-primary-800 border-2 border-primary-400 shadow-raised flex items-center justify-center`}
+`;
+const DividerLogo = tw.img`w-8 h-8 object-contain rounded-full`;
 
 export default () => {
   // Member yang lagi login, diambil dari localStorage (diisi pas login lewat
@@ -120,6 +139,16 @@ export default () => {
         links={navLinks}
       />
 
+      {/* ── PEMISAH HERO ↔ FEATURES ── */}
+      <HeroFeaturesDivider>
+        <DividerInner>
+          <DividerLine />
+          <DividerBadge>
+            <DividerLogo src={logoImageSrc} alt="Sopan Remix" />
+          </DividerBadge>
+        </DividerInner>
+      </HeroFeaturesDivider>
+
       {/* ── FEATURES ── diedit via props di file demo ini */}
       <Features
         heading="Apa yang Kami Lakukan"
@@ -173,6 +202,7 @@ export default () => {
         primaryButtonUrl="/remix/join"
         imageSrc={serverillustration2ImageSrc}
         buttonRounded={false}
+        showPrimaryButton={!currentMember}
       />
 
       {/* ── MAIN FEATURE 2 ── diedit via props di file demo ini */}
@@ -200,6 +230,7 @@ export default () => {
         secondaryLinkText="Join Sekarang"
         secondaryLinkUrl="/remix/join"
         pushDownFooter={false}
+        showSecondaryLink={!currentMember}
       />
 
       {/* ── TESTIMONIAL → Member Spotlight ── diedit via props di file demo ini */}
