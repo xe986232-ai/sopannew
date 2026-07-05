@@ -14,7 +14,7 @@ import Footer from "components/footers/FooterRemix.js";
 import { NavLinks, NavLink as NavLinkBase, PrimaryLink as PrimaryLinkBase } from "components/headers/light.js";
 import { getSession, clearSession } from "helpers/session.js";
 import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.svg";
-import remixLogoImageSrc from "images/remix.jpeg";
+import logoImageSrc from "images/logo-sopan.png";
 import composeMusicIllustrationSrc from "images/Compose music-bro.svg";
 import playingMusicIllustrationSrc from "images/Playing Music-bro.svg";
 import SupportIconImage from "images/support-icon.svg";
@@ -137,8 +137,6 @@ export default () => {
         primaryButtonUrl="/remix/join"
         showPrimaryButton={!currentMember}
         links={navLinks}
-        logoImageSrc={remixLogoImageSrc}
-        logoText="Sopan REMIX!"
       />
 
       {/* ── PEMISAH HERO ↔ FEATURES ── */}
@@ -146,7 +144,7 @@ export default () => {
         <DividerInner>
           <DividerLine />
           <DividerBadge>
-            <DividerLogo src={remixLogoImageSrc} alt="Sopan REMIX!" />
+            <DividerLogo src={logoImageSrc} alt="Sopan Remix" />
           </DividerBadge>
         </DividerInner>
       </HeroFeaturesDivider>
