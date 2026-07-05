@@ -118,6 +118,7 @@ import LoginRemix from "pages/LoginRemix.js";
 import SignupRemix from "pages/SignupRemix.js";
 import MembersRemix from "pages/MembersRemix.js";
 import MemberProfileRemix from "pages/MemberProfileRemix.js";
+import EditProfileRemix from "pages/EditProfileRemix.js";
 
 // ── Sopan Creator ──
 import SopanCreatorPage from "demos/SaaSProductLandingPage.js";
@@ -171,6 +172,7 @@ export default function App() {
           <Route path="/remix/join" element={<SignupRemix />} />
           <Route path="/remix/members" element={<MembersRemix />} />
           <Route path="/remix/members/:id" element={<MemberProfileRemix />} />
+          <Route path="/remix/profile" element={<EditProfileRemix />} />
 
           {/* ── Sopan Creator ── */}
           <Route path="/creator" element={<SopanCreatorPage />} />
