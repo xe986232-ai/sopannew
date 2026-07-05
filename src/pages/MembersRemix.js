@@ -22,6 +22,7 @@ import { ReactComponent as UserIcon } from "feather-icons/dist/icons/user.svg";
 import { ReactComponent as UsersIcon } from "feather-icons/dist/icons/users.svg";
 import { ReactComponent as CalendarIcon } from "feather-icons/dist/icons/calendar.svg";
 import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.svg";
+import BoringAvatar from "boring-avatars";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MEMBER ROSTER: SOPAN REMIX (/remix/members)
@@ -29,6 +30,11 @@ import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.s
 // "users") lewat hook useRemixMembers, bukan hardcode lagi.
 // Field sensitif (email, passwordPlain) sengaja TIDAK ditarik ke tampilan ini.
 // ─────────────────────────────────────────────────────────────────────────────
+
+// ── Palet warna avatar fallback (Boring Avatars, variant "beam") — disamain
+// sama palet ungu Sopan Remix biar avatar generate-annya tetap senada sama
+// tema, bukan warna acak default library.
+const BORING_AVATAR_COLORS = ["#3c0d99", "#5a13e6", "#742cff", "#935bff", "#a273ff"];
 
 const HeadingContainer = tw.div`text-center mb-10`;
 const Heading = tw(SectionHeading)``;
@@ -68,7 +74,6 @@ const LogoLink = tw(LogoLinkBase)`text-gray-900`;
 const ProfileAvatarLink = tw(Link)`flex items-center lg:ml-12! border-b-0`;
 const AvatarCircle = tw.div`w-10 h-10 rounded-full overflow-hidden bg-primary-500 flex items-center justify-center flex-shrink-0`;
 const AvatarImg = tw.img`w-full h-full object-cover`;
-const AvatarInitial = tw.span`text-gray-100 text-sm font-bold select-none`;
 const MemberNameNavSpan = tw.span`
   flex items-center text-lg my-2 lg:text-sm lg:mx-6 lg:my-0 font-semibold tracking-wide text-primary-500
 `;
@@ -110,16 +115,22 @@ const MemberPosition = tw.span`mt-3 uppercase font-bold tracking-widest text-pri
 const MemberName = tw.span`mt-1 text-xs sm:text-lg font-medium text-gray-900 hover:text-primary-500 transition duration-300 text-center px-1`;
 const MemberSocials = tw.div`mt-2 sm:mt-4 flex`;
 
-// Avatar member: pakai foto dari database, fallback ke avatar inisial
-// (lingkaran primary color + huruf depan nama) kalau profilePic kosong/error.
+// Avatar member: pakai foto dari database, fallback ke Boring Avatars
+// (https://boringavatars.com — avatar unik auto-generate dari nama) kalau
+// profilePic kosong/error.
 const MemberAvatar = ({ src, name }) => {
   const [failed, setFailed] = useState(false);
-  const initial = (name || "?").trim().charAt(0).toUpperCase();
 
   if (!src || failed) {
     return (
-      <MemberAvatarFrame tw="bg-primary-500 text-gray-100 flex items-center justify-center text-lg sm:text-4xl md:text-5xl font-black select-none">
-        {initial}
+      <MemberAvatarFrame>
+        <BoringAvatar
+          name={name || "Sopan Remix"}
+          variant="beam"
+          colors={BORING_AVATAR_COLORS}
+          size="100%"
+          square
+        />
       </MemberAvatarFrame>
     );
   }
@@ -177,7 +188,12 @@ export default () => {
                 onError={() => setAvatarError(true)}
               />
             ) : (
-              <AvatarInitial>{currentMember.username.trim().charAt(0).toUpperCase()}</AvatarInitial>
+              <BoringAvatar
+                name={currentMember.username || "Sopan Remix"}
+                variant="beam"
+                colors={BORING_AVATAR_COLORS}
+                size="100%"
+              />
             )}
           </AvatarCircle>
         </ProfileAvatarLink>
