@@ -15,8 +15,8 @@ import { NavLinks, NavLink as NavLinkBase, PrimaryLink as PrimaryLinkBase } from
 import { getSession, clearSession } from "helpers/session.js";
 import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.svg";
 import logoImageSrc from "images/logo-sopan.png";
-import serverillustration2ImageSrc from "images/server-illustration-2.svg"
-import serverSecureIllustrationImageSrc from "images/server-secure-illustration.svg"
+import composeMusicIllustrationSrc from "images/Compose music-bro.svg";
+import playingMusicIllustrationSrc from "images/Playing Music-bro.svg";
 import SupportIconImage from "images/support-icon.svg";
 import ShieldIconImage from "images/shield-icon.svg";
 import CustomizeIconImage from "images/customize-icon.svg";
@@ -200,7 +200,7 @@ export default () => {
         description="Di Sopan Remix, setiap karya lahir dari proses yang terstruktur. Dimulai dari produksi beat dan melodi, dilanjutkan mixing multi-track untuk keseimbangan suara, lalu mastering agar hasil akhir terdengar profesional di semua platform streaming maupun konten TikTok."
         primaryButtonText="Join Sopan Remix"
         primaryButtonUrl="/remix/join"
-        imageSrc={serverillustration2ImageSrc}
+        imageSrc={composeMusicIllustrationSrc}
         buttonRounded={false}
         showPrimaryButton={!currentMember}
       />
@@ -216,7 +216,7 @@ export default () => {
         description="Sound engineering adalah fondasi kualitas audio Sopan Remix. Member senior kami memastikan setiap rekaman, efek, dan lapisan suara dikelola dengan presisi — menghasilkan output yang jernih, kuat, dan siap dipublikasikan."
         primaryButtonText="Lihat Member"
         primaryButtonUrl="/remix/members"
-        imageSrc={serverSecureIllustrationImageSrc}
+        imageSrc={playingMusicIllustrationSrc}
         buttonRounded={false}
         textOnLeft={false}
       />
