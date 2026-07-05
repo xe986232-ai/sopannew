@@ -29,7 +29,10 @@ export default ({
   primaryLinkUrl = "http://timerse.com",
   secondaryLinkText = "Contact Us",
   secondaryLinkUrl = "http://google.com",
-  pushDownFooter = true
+  pushDownFooter = true,
+  showSecondaryLink = true, // set false buat sembunyiin link kedua (mis. link Join kalau user sudah
+                            // login/daftar). Default true supaya halaman lain yang belum pakai prop
+                            // ini tetap tampil normal.
 }) => {
   return (
     <Container css={pushDownFooter && tw`mb-20 lg:mb-24`}>
@@ -42,7 +45,9 @@ export default ({
           </TextContainer>
           <LinksContainer>
             <PrimaryLink href={primaryLinkUrl}>{primaryLinkText}</PrimaryLink>
-            <SecondaryLink href={secondaryLinkUrl}>{secondaryLinkText}</SecondaryLink>
+            {showSecondaryLink && (
+              <SecondaryLink href={secondaryLinkUrl}>{secondaryLinkText}</SecondaryLink>
+            )}
           </LinksContainer>
         </Row>
         <DecoratorBlobContainer>
