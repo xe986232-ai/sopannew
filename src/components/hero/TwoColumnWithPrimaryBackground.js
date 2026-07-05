@@ -35,11 +35,14 @@ export default ({
   links, // opsional: kalau dioper dari halaman pemanggil (mis. HostingCloudLandingPage.js
          // buat navbar login-aware), dipakai. Kalau tidak, fallback ke defaultNavLinks di bawah
          // (perilaku lama, tidak berubah buat halaman lain yang belum butuh custom links).
+  logoImageSrc: brandLogoImageSrc = logoImageSrc, // opsional: ganti foto brand di navbar.
+                                                   // Default logo-sopan.png (perilaku lama).
+  logoText = "Sopan Team", // opsional: ganti nama brand di sebelah logo.
 }) => {
   const logoLink = (
     <LogoLink href="/">
-      <img src={logoImageSrc} alt="Logo" />
-      Sopan Team
+      <img src={brandLogoImageSrc} alt="Logo" />
+      {logoText}
     </LogoLink>
   );
   const defaultNavLinks = [
