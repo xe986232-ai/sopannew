@@ -58,7 +58,9 @@ export default ({
   imageCss = null,
   imageDecoratorBlob = false,
   imageDecoratorBlobCss = null,
-  textOnLeft = true
+  textOnLeft = true,
+  showPrimaryButton = true, // set false buat sembunyiin tombol CTA (mis. kalau user sudah login/daftar).
+                            // Default true supaya halaman lain yang belum pakai prop ini tetap tampil normal.
 }) => {
   // The textOnLeft boolean prop can be used to display either the text on left or right side of the image.
 
@@ -74,9 +76,11 @@ export default ({
             <Subheading>{subheading}</Subheading>
             <Heading>{heading}</Heading>
             <Description>{description}</Description>
-            <PrimaryButton buttonRounded={buttonRounded} as="a" href={primaryButtonUrl}>
-              {primaryButtonText}
-            </PrimaryButton>
+            {showPrimaryButton && (
+              <PrimaryButton buttonRounded={buttonRounded} as="a" href={primaryButtonUrl}>
+                {primaryButtonText}
+              </PrimaryButton>
+            )}
           </TextContent>
         </TextColumn>
       </TwoColumn>
