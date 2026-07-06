@@ -44,8 +44,8 @@ import SimpleIconImage from "images/simple-icon.svg";
 // bulat, fallback inisial), nama, dan tombol Logout. Warna teks nav di sini
 // disamakan sama styling yang dipakai Hero aslinya (putih di atas bg ungu).
 // ─────────────────────────────────────────────────────────────────────────────
-const NavLink = tw(NavLinkBase)`lg:text-gray-100 lg:hocus:text-gray-300 lg:hocus:border-gray-100`;
-const PrimaryLink = tw(PrimaryLinkBase)`shadow-raised lg:bg-primary-400 lg:hocus:bg-primary-500`;
+const NavLink = tw(NavLinkBase)`lg:text-[#F3F2F4] lg:hocus:text-[#DDFD3C] lg:hocus:border-[#DDFD3C]`;
+const PrimaryLink = tw(PrimaryLinkBase)`shadow-raised lg:bg-[#CFF912] lg:text-[#454742] lg:hocus:bg-[#DDFD3C] lg:hocus:text-[#454742]`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NAVBAR LOGIN-AWARE — kalau user sudah login, Login & Join Sekarang di-hide,
@@ -58,23 +58,23 @@ const ProfileMenuWrap = tw.div`relative flex items-center lg:ml-12! my-2 lg:my-0
 const ProfileTrigger = styled.button`
   ${tw`flex items-center gap-2 focus:outline-none`}
 `;
-const AvatarCircle = tw.div`w-10 h-10 rounded-full overflow-hidden bg-primary-400 flex items-center justify-center flex-shrink-0`;
+const AvatarCircle = tw.div`w-10 h-10 rounded-full overflow-hidden bg-[#CFF912] flex items-center justify-center flex-shrink-0`;
 const AvatarImg = tw.img`w-full h-full object-cover`;
-const AvatarInitial = tw.span`text-gray-100 text-sm font-bold select-none`;
+const AvatarInitial = tw.span`text-[#454742] text-sm font-bold select-none`;
 const MemberNameNavSpan = tw.span`
-  flex items-center text-lg lg:text-sm font-semibold tracking-wide text-primary-500
+  flex items-center text-lg lg:text-sm font-semibold tracking-wide text-[#DDFD3C]
 `;
 const ProfileChevron = styled.div`
-  ${tw`text-gray-100 flex-shrink-0 transition-transform duration-200`}
+  ${tw`text-[#F3F2F4] flex-shrink-0 transition-transform duration-200`}
   ${(props) => props.open && tw`transform rotate-180`}
 `;
 
 const ProfileDropdown = styled.div`
-  ${tw`absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 text-left`}
+  ${tw`absolute right-0 mt-2 w-48 bg-[#F3F2F4] rounded-lg shadow-lg py-2 z-50 text-left`}
   top: 100%;
 `;
 const ProfileDropdownLink = styled(Link)`
-  ${tw`flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition duration-150 border-b-0!`}
+  ${tw`flex items-center gap-2 px-4 py-2 text-sm text-[#454742] hover:bg-[#EAEAEA] transition duration-150 border-b-0!`}
 `;
 const ProfileDropdownButton = styled.button`
   ${tw`w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-100 transition duration-150 focus:outline-none`}
@@ -82,19 +82,19 @@ const ProfileDropdownButton = styled.button`
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PEMISAH HERO ↔ FEATURES — Hero ("Sopan Remix — Komunitas Musik Digital") dan
-// Features ("Apa yang Kami Lakukan") sama-sama pakai bg-primary-900, jadi
+// Features ("Apa yang Kami Lakukan") sama-sama pakai bg-[#454742], jadi
 // nyambung tanpa batas. Pemisah ini kasih jeda visual: garis gradient tipis +
 // badge bulat berisi logo Sopan (asset yang sudah ada di repo), biar dua
 // section itu kebaca sebagai dua blok yang beda, bukan satu blok panjang.
 // ─────────────────────────────────────────────────────────────────────────────
-const HeroFeaturesDivider = tw.div`relative bg-primary-900 -mx-8 px-8`;
+const HeroFeaturesDivider = tw.div`relative bg-[#454742] -mx-8 px-8`;
 const DividerInner = tw.div`relative flex items-center justify-center max-w-screen-lg mx-auto py-2`;
 const DividerLine = styled.div`
   ${tw`absolute inset-x-0 top-1/2 h-px transform -translate-y-1/2`}
-  background: linear-gradient(to right, transparent, rgba(247, 250, 252, 0.35) 50%, transparent);
+  background: linear-gradient(to right, transparent, rgba(243, 242, 244, 0.35) 50%, transparent);
 `;
 const DividerBadge = styled.div`
-  ${tw`relative z-10 w-16 h-16 rounded-full bg-primary-800 border-2 border-primary-400 shadow-raised flex items-center justify-center`}
+  ${tw`relative z-10 w-16 h-16 rounded-full bg-[#454742] border-2 border-[#CFF912] shadow-raised flex items-center justify-center`}
 `;
 const DividerLogo = tw.img`w-8 h-8 object-contain rounded-full`;
 
@@ -252,7 +252,7 @@ export default () => {
         subheading="Proses Kerja"
         heading={
           <>
-            Dari Ide ke <span tw="text-primary-500">Karya Jadi.</span>
+            Dari Ide ke <span tw="text-[#AFBD75]">Karya Jadi.</span>
           </>
         }
         description="Di Sopan Remix, setiap karya lahir dari proses yang terstruktur. Dimulai dari produksi beat dan melodi, dilanjutkan mixing multi-track untuk keseimbangan suara, lalu mastering agar hasil akhir terdengar profesional di semua platform streaming maupun konten TikTok."
@@ -268,7 +268,7 @@ export default () => {
         subheading="Sound Engineering"
         heading={
           <>
-            Audio Berkualitas di <span tw="text-primary-500">Setiap Karya.</span>
+            Audio Berkualitas di <span tw="text-[#AFBD75]">Setiap Karya.</span>
           </>
         }
         description="Sound engineering adalah fondasi kualitas audio Sopan Remix. Member senior kami memastikan setiap rekaman, efek, dan lapisan suara dikelola dengan presisi — menghasilkan output yang jernih, kuat, dan siap dipublikasikan."
