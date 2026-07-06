@@ -16,7 +16,6 @@ import { getSession, clearSession } from "helpers/session.js";
 import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.svg";
 import { ReactComponent as ChevronDownIcon } from "feather-icons/dist/icons/chevron-down.svg";
 import { ReactComponent as Edit2Icon } from "feather-icons/dist/icons/edit-2.svg";
-import logoImageSrc from "images/logo-sopan.png";
 import composeMusicIllustrationSrc from "images/Compose music-bro.svg";
 import playingMusicIllustrationSrc from "images/Playing Music-bro.svg";
 import SupportIconImage from "images/support-icon.svg";
@@ -80,6 +79,13 @@ const ProfileDropdownButton = styled.button`
   ${tw`w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-100 transition duration-150 focus:outline-none`}
 `;
 
+// Brand di navbar: "Sopan" tetap polos (senada teks nav lain), "Remix"
+// dikasih warna aksen (primary-400 — sama kayak warna tombol "Join
+// Sekarang") + italic biar menonjol, tapi tetap satu keluarga tipografi
+// sama size/weight (font-black text-2xl) dari LogoLink bawaan, jadi nggak
+// lepas dari gaya web.
+const BrandAccent = tw.span`text-primary-400 italic`;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PEMISAH HERO ↔ FEATURES — Hero ("Sopan Remix — Komunitas Musik Digital") dan
 // Features ("Apa yang Kami Lakukan") sama-sama pakai bg-primary-900, jadi
@@ -93,10 +99,6 @@ const DividerLine = styled.div`
   ${tw`absolute inset-x-0 top-1/2 h-px transform -translate-y-1/2`}
   background: linear-gradient(to right, transparent, rgba(247, 250, 252, 0.35) 50%, transparent);
 `;
-const DividerBadge = styled.div`
-  ${tw`relative z-10 w-16 h-16 rounded-full bg-primary-800 border-2 border-primary-400 shadow-raised flex items-center justify-center`}
-`;
-const DividerLogo = tw.img`w-8 h-8 object-contain rounded-full`;
 
 export default () => {
   // Member yang lagi login, diambil dari localStorage (diisi pas login lewat
@@ -195,15 +197,14 @@ export default () => {
         primaryButtonUrl="/remix/join"
         showPrimaryButton={!currentMember}
         links={navLinks}
+        logoLabel={<>Sopan <BrandAccent>Remix</BrandAccent></>}
       />
 
-      {/* ── PEMISAH HERO ↔ FEATURES ── */}
+      {/* ── PEMISAH HERO ↔ FEATURES ── cuma garis, logo/SVG-nya dihapus
+          sesuai permintaan (dulu ada badge bulat + logo di sini). */}
       <HeroFeaturesDivider>
         <DividerInner>
           <DividerLine />
-          <DividerBadge>
-            <DividerLogo src={logoImageSrc} alt="Sopan Remix" />
-          </DividerBadge>
         </DividerInner>
       </HeroFeaturesDivider>
 
