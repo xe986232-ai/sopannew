@@ -7,7 +7,7 @@ import AnimationRevealPage from "helpers/AnimationRevealPage.js";
 import Hero from "components/hero/TwoColumnWithPrimaryBackground.js";
 import Features from "components/features/ThreeColWithSideImageWithPrimaryBackground.js";
 import MainFeature from "components/features/TwoColWithButton.js";
-import Testimonial from "components/testimonials/SimplePrimaryBackground.js";
+import Testimonial from "components/testimonials/AnimatedTestimonials.js";
 import FAQ from "components/faqs/TwoColumnPrimaryBackground.js";
 import GetStarted from "components/cta/GetStartedLight.js";
 import Footer from "components/footers/FooterRemix.js";
@@ -296,20 +296,21 @@ export default () => {
         subheading="Member Spotlight"
         heading="Cerita dari Tim Kami"
         description="Dengarkan langsung dari member Sopan Remix tentang pengalaman berkarya bersama."
+        autoplay
         testimonials={[
           {
             // PLACEHOLDER - ganti dengan data member asli
-            customerName: "Rizky Aditya",
-            customerProfile: "Mixing Engineer — Sopan Remix",
-            imageSrc: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.85&w=256&h=256&q=80",
+            name: "Rizky Aditya",
+            designation: "Mixing Engineer — Sopan Remix",
+            src: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.85&w=512&h=512&q=80",
             quote:
               "Bergabung di Sopan Remix mengubah cara saya memandang produksi musik. Di sini saya belajar mixing dari nol, dapat feedback langsung dari senior, dan akhirnya bisa merilis karya pertama saya yang benar-benar terdengar profesional." // PLACEHOLDER
           },
           {
             // PLACEHOLDER - ganti dengan data member asli
-            customerName: "Daffa Pratama",
-            customerProfile: "Producer & Sound Engineer — Sopan Remix",
-            imageSrc: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=3.25&w=256&h=256&q=80",
+            name: "Daffa Pratama",
+            designation: "Producer & Sound Engineer — Sopan Remix",
+            src: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=3.25&w=512&h=512&q=80",
             quote:
               "Komunitas ini memberikan ruang yang tepat untuk tumbuh. Kami saling berbagi ilmu, kolaborasi proyek remix, dan terus mendorong satu sama lain untuk menghasilkan karya terbaik." // PLACEHOLDER
           }
