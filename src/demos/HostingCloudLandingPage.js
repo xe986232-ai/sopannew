@@ -16,6 +16,7 @@ import { getSession, clearSession } from "helpers/session.js";
 import { ReactComponent as LogOutIcon } from "feather-icons/dist/icons/log-out.svg";
 import { ReactComponent as ChevronDownIcon } from "feather-icons/dist/icons/chevron-down.svg";
 import { ReactComponent as Edit2Icon } from "feather-icons/dist/icons/edit-2.svg";
+import logoImageSrc from "images/logo-sopan.png";
 import composeMusicIllustrationSrc from "images/Compose music-bro.svg";
 import playingMusicIllustrationSrc from "images/Playing Music-bro.svg";
 import SupportIconImage from "images/support-icon.svg";
@@ -92,6 +93,10 @@ const DividerLine = styled.div`
   ${tw`absolute inset-x-0 top-1/2 h-px transform -translate-y-1/2`}
   background: linear-gradient(to right, transparent, rgba(247, 250, 252, 0.35) 50%, transparent);
 `;
+const DividerBadge = styled.div`
+  ${tw`relative z-10 w-16 h-16 rounded-full bg-primary-800 border-2 border-primary-400 shadow-raised flex items-center justify-center`}
+`;
+const DividerLogo = tw.img`w-8 h-8 object-contain rounded-full`;
 
 export default () => {
   // Member yang lagi login, diambil dari localStorage (diisi pas login lewat
@@ -190,14 +195,15 @@ export default () => {
         primaryButtonUrl="/remix/join"
         showPrimaryButton={!currentMember}
         links={navLinks}
-        logoLabel="Sopan Remix"
       />
 
-      {/* ── PEMISAH HERO ↔ FEATURES ── cuma garis, logo/SVG-nya dihapus
-          sesuai permintaan (dulu ada badge bulat + logo di sini). */}
+      {/* ── PEMISAH HERO ↔ FEATURES ── */}
       <HeroFeaturesDivider>
         <DividerInner>
           <DividerLine />
+          <DividerBadge>
+            <DividerLogo src={logoImageSrc} alt="Sopan Remix" />
+          </DividerBadge>
         </DividerInner>
       </HeroFeaturesDivider>
 
