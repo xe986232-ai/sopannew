@@ -79,13 +79,6 @@ const ProfileDropdownButton = styled.button`
   ${tw`w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-100 transition duration-150 focus:outline-none`}
 `;
 
-// Brand di navbar: "Sopan" tetap polos (senada teks nav lain), "Remix"
-// dikasih warna aksen (primary-400 — sama kayak warna tombol "Join
-// Sekarang") + italic biar menonjol, tapi tetap satu keluarga tipografi
-// sama size/weight (font-black text-2xl) dari LogoLink bawaan, jadi nggak
-// lepas dari gaya web.
-const BrandAccent = tw.span`text-primary-400 italic`;
-
 // ─────────────────────────────────────────────────────────────────────────────
 // PEMISAH HERO ↔ FEATURES — Hero ("Sopan Remix — Komunitas Musik Digital") dan
 // Features ("Apa yang Kami Lakukan") sama-sama pakai bg-primary-900, jadi
@@ -197,7 +190,7 @@ export default () => {
         primaryButtonUrl="/remix/join"
         showPrimaryButton={!currentMember}
         links={navLinks}
-        logoLabel={<>Sopan <BrandAccent>Remix</BrandAccent></>}
+        logoLabel="Sopan Remix"
       />
 
       {/* ── PEMISAH HERO ↔ FEATURES ── cuma garis, logo/SVG-nya dihapus
